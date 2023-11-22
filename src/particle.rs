@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{collision::{Collider, ColliderProperties}, body::SoftBodyMassPoints};
+use crate::{collision::{Collider, ColliderProperties}, body::SoftBodyMassPoints, sim::PhysicsSimulationSettings};
 
 
 #[derive(SystemSet, Hash, Debug, Eq, PartialEq, Clone)]
@@ -37,8 +37,8 @@ pub fn apply_collision<T: Component + Collider>(
     mut bodies: Query<&mut SoftBodyMassPoints>,
 ) {
     for (collider, collider_props) in colliders.iter() {
-        for mut body in bodies.iter_mut() {
-            for (particle, props) in body.particles.iter_mut() {
+        for mut particles in bodies.iter_mut() {
+            for (particle, props) in particles.0.iter_mut() {
                 match collider.exit_vector(particle.position) {
                     Some(exit_vec) => {
                         let dir = exit_vec.normalize();
@@ -58,8 +58,8 @@ pub fn apply_collision<T: Component + Collider>(
 pub fn apply_particle_gravity(
     mut bodies: Query<&mut SoftBodyMassPoints>,
 ) {
-    for mut body in bodies.iter_mut() {
-        for (particle, props) in body.particles.iter_mut() {
+    for mut particles in bodies.iter_mut() {
+        for (particle, props) in particles.0.iter_mut() {
             particle.acceleration += Vec3::new(0.0, -300.0, 0.0) * props.mass;
         }
     }
@@ -67,11 +67,11 @@ pub fn apply_particle_gravity(
 
 pub fn update_particle_positions(
     mut bodies: Query<&mut SoftBodyMassPoints>,
-    time: Res<Time>,
+    settings: Res<PhysicsSimulationSettings>,
 ) {
-    let dt = time.delta_seconds();
-    for mut body in bodies.iter_mut() {
-        for (particle, props) in body.particles.iter_mut() {
+    let dt = settings.sub_dt;
+    for mut particles in bodies.iter_mut() {
+        for (particle, props) in particles.0.iter_mut() {
             particle.position = particle.position + particle.velocity * dt + 0.5 * particle.old_acceleration / props.mass * dt * dt;
         }
     }
@@ -79,11 +79,11 @@ pub fn update_particle_positions(
 
 pub fn update_particle_velocities(
     mut bodies: Query<&mut SoftBodyMassPoints>,
-    time: Res<Time>,
+    settings: Res<PhysicsSimulationSettings>,
 ) {
-    let dt = time.delta_seconds();
-    for mut body in bodies.iter_mut() {
-        for (particle, props) in body.particles.iter_mut() {
+    let dt = settings.sub_dt;
+    for mut particles in bodies.iter_mut() {
+        for (particle, props) in particles.0.iter_mut() {
             particle.velocity = particle.velocity + 0.5 * (particle.old_acceleration + particle.acceleration) / props.mass * dt;
             particle.old_acceleration = particle.acceleration;
             particle.acceleration = Vec3::ZERO;
