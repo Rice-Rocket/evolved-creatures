@@ -6,9 +6,11 @@ use bevy::{prelude::*, ecs::schedule::ScheduleLabel};
 pub struct PhysicsSimulationSchedule;
 
 
-#[derive(Resource)]
+#[derive(Resource, Reflect, Debug)]
+#[reflect(Debug, Default)]
 pub struct PhysicsSimulationSettings {
     pub num_substeps: u32,
+    pub startup_time_buffer: f32,
 
     pub sub_dt: f32,
 }
@@ -16,7 +18,8 @@ pub struct PhysicsSimulationSettings {
 impl Default for PhysicsSimulationSettings {
     fn default() -> Self {
         Self {
-            num_substeps: 4,
+            num_substeps: 8,
+            startup_time_buffer: 1.0,
             
             sub_dt: 0.0,
         }
@@ -27,11 +30,17 @@ impl Default for PhysicsSimulationSettings {
 pub fn run_physics_sim_schedule(world: &mut World) {
     let time = world.resource::<Time>();
     let dt = time.delta_seconds();
+    let elapsed = time.elapsed_seconds();
+    
     {
         let mut sim_settings = world.resource_mut::<PhysicsSimulationSettings>();
         sim_settings.sub_dt = dt / sim_settings.num_substeps as f32;
     }
     let sim_settings = world.resource::<PhysicsSimulationSettings>();
+
+    if elapsed < sim_settings.startup_time_buffer {
+        return;
+    }
     
     for _ in 0..sim_settings.num_substeps {
         world.run_schedule(PhysicsSimulationSchedule);

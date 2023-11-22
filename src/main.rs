@@ -1,8 +1,9 @@
 use bevy::prelude::*;
-use body::SoftBody;
-use draw::{draw_particles, setup_gizmo_config, draw_springs};
+use body::{SoftBody, SoftBodyMassPoints, SoftBodySprings};
+use draw::{draw_particles, setup_gizmo_config, draw_springs, draw_colliders};
 use particle::{apply_particle_gravity, apply_collision, update_particle_positions, update_particle_velocities, ParticleAccelerateSet, ParticleProperties};
-use bevy_inspector_egui::quick::FilterQueryInspectorPlugin;
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 
 pub mod particle;
 pub mod draw;
@@ -21,11 +22,17 @@ use spring::{SpringProperties, apply_spring_force};
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                present_mode: bevy::window::PresentMode::AutoNoVsync,
+                ..default()
+            }),
+            ..default()
+        }))
         .add_systems(Startup, setup)
 
         .add_systems(Startup, setup_gizmo_config)
-        .add_systems(Update, (draw_particles, draw_springs))
+        .add_systems(Update, (draw_particles, draw_springs, draw_colliders))
 
         .init_resource::<PhysicsSimulationSettings>()
         .add_schedule(Schedule::new(PhysicsSimulationSchedule))
@@ -39,12 +46,18 @@ fn main() {
             apply_particle_gravity,
             apply_spring_force,
             apply_collision::<HalfSpace>,
-        ).in_set(ParticleAccelerateSet))
+            apply_collision::<StaticPolygon>,
+        ).in_set(ParticleAccelerateSet).after(update_particle_positions))
 
         .register_type::<ColliderProperties>()
         .register_type::<HalfSpace>()
+        .register_type::<SoftBodyMassPoints>()
+        .register_type::<SoftBodySprings>()
+        .register_type::<PhysicsSimulationSettings>()
 
-        .add_plugins(FilterQueryInspectorPlugin::<With<ColliderProperties>>::default())
+        .add_plugins(ScreenDiagnosticsPlugin::default())
+        .add_plugins(ScreenFrameDiagnosticsPlugin)
+        .add_plugins(ResourceInspectorPlugin::<PhysicsSimulationSettings>::default())
 
         .run();
 }
@@ -64,23 +77,48 @@ fn setup(
             restitution: 0.5,
         })
         .with_spring_properties(SpringProperties {
-            stiffness: 1000.0,
+            stiffness: 60000.0,
             damping: 50.0,
             ..default()
         })
-        .tesselate_from_dims(IVec2::new(10, 5))
+        .tesselate_from_dims(IVec2::new(20, 10))
         .set_spring_rest_lengths()
     );
 
+    let collider_props = ColliderProperties {
+        elasticity: 20000.0,
+        friction: 300.0,
+        restitution: 100.0,
+    };
+
     commands.spawn((
         HalfSpace {
-            normal: Vec3::new(0.2, 1.0, 0.0).normalize(),
-            k: -200.0,
+            normal: Vec3::new(0.0, 1.0, 0.0).normalize(),
+            k: -300.0,
         },
-        ColliderProperties {
-            elasticity: 20000.0,
-            friction: 1.0,
-            restitution: 100.0,
-        }
+        collider_props.clone(),
+    ));
+
+    commands.spawn((
+        StaticPolygon::new_square()
+            .with_transform(
+                Transform::from_xyz(-150.0, -80.0, 0.0)
+                .with_scale(Vec3::new(200.0, 100.0, 1.0))
+                .with_rotation(Quat::from_euler(EulerRot::ZXY, 2.6, 0.0, 0.0))
+            ),
+        collider_props.clone(),
+    ));
+
+    commands.spawn((
+        StaticPolygon::from_vertices(vec![
+            Vec3::new(-0.5, -0.5, 0.0), Vec3::new(0.5, -0.5, 0.0), 
+            Vec3::new(0.4, 0.5, 0.0), Vec3::new(0.0, -0.2, 0.0), 
+            Vec3::new(-0.4, 0.5, 0.0), 
+        ]).with_transform(
+            Transform::from_xyz(150.0, -150.0, 0.0)
+            .with_scale(Vec3::new(200.0, 100.0, 1.0))
+            .with_rotation(Quat::from_euler(EulerRot::ZXY, 0.5, 0.0, 0.0))
+        ),
+        collider_props.clone(),
     ));
 }

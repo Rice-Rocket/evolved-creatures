@@ -1,12 +1,12 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::body::{SoftBodyMassPoints, SoftBodySprings};
+use crate::{body::{SoftBodyMassPoints, SoftBodySprings}, collision::{HalfSpace, StaticPolygon}};
 
 
 pub fn setup_gizmo_config(
     mut config: ResMut<GizmoConfig>
 ) {
-    config.line_width = 10.0;
+    config.line_width = 5.0;
 }
 
 pub fn draw_particles(
@@ -30,5 +30,33 @@ pub fn draw_springs(
             let p2 = &mass_points.0[spring.p2_idx].0;
             gizmos.line_2d(p1.position.xy(), p2.position.xy(), Color::ANTIQUE_WHITE);
         }
+    }
+}
+
+pub fn draw_colliders(
+    mut gizmos: Gizmos,
+    polygons: Query<&StaticPolygon>,
+    halfspaces: Query<&HalfSpace>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+) {
+    let window = window_query.single();
+
+    for poly in polygons.iter() {
+        for i in 0..poly.vertices.len() {
+            let j = (i + 1) % poly.vertices.len();
+
+            let v1 = poly.vertices[i];
+            let v2 = poly.vertices[j];
+
+            gizmos.line_2d(v1.xy(), v2.xy(), Color::GRAY);
+        }
+    }
+
+    for halfspace in halfspaces.iter() {
+        let tangent = Vec2::new(halfspace.normal.y, -halfspace.normal.x);
+        let p = halfspace.normal * halfspace.k;
+
+        gizmos.ray_2d(p.xy(), tangent * window.width(), Color::GRAY);
+        gizmos.ray_2d(p.xy(), -tangent * window.width(), Color::GRAY);
     }
 }

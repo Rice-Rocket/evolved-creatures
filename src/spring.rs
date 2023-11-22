@@ -30,6 +30,8 @@ pub fn apply_spring_force(
 
             let pv = p2.position - p1.position;
             let dist = pv.length();
+            if dist > -0.001 && dist < 0.001 { continue };
+
             let pn = pv / dist;
             let dx = spring.properties.rest_length - dist;
 
