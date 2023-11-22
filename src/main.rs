@@ -1,5 +1,5 @@
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
-use particle::{Particle, apply_particle_gravity, apply_collision, update_particle_positions, update_particle_velocities, ParticleAccelerateSet};
+use particle::{ParticleTrajectory, apply_particle_gravity, apply_collision, update_particle_positions, update_particle_velocities, ParticleAccelerateSet, ParticleProperties, Particle};
 
 pub mod particle;
 pub mod draw;
@@ -44,15 +44,24 @@ fn setup(
                 ..default()
             },
             Particle {
-                velocity: Vec3::ZERO,
-                acceleration: Vec3::ZERO,
-                old_acceleration: Vec3::ZERO,
+                properties: ParticleProperties {
+                    mass: 10.0,
+                    restitution: 0.5,
+                },
+                trajectory: ParticleTrajectory::default(),
             },
         ));
     }
 
-    commands.spawn(HalfSpace {
-        normal: Vec3::new(0.2, 1.0, 0.0).normalize(),
-        k: -200.0,
-    });
+    commands.spawn((
+        HalfSpace {
+            normal: Vec3::new(0.2, 1.0, 0.0).normalize(),
+            k: -200.0,
+        },
+        ColliderProperties {
+            elasticity: 20000.0,
+            friction: 1.0,
+            restitution: 1.0,
+        }
+    ));
 }

@@ -2,9 +2,16 @@ use bevy::prelude::*;
 
 
 pub trait Collider {
-    fn on_surface(&self, pos: Vec3) -> Option<Vec3>;
+    fn normal(&self, pos: Vec3) -> Vec3;
+    fn exit_vector(&self, pos: Vec3) -> Option<Vec3>;
 }
 
+#[derive(Component)]
+pub struct ColliderProperties {
+    pub elasticity: f32,
+    pub friction: f32,
+    pub restitution: f32,
+}
 
 #[derive(Component)]
 pub struct HalfSpace {
@@ -13,12 +20,15 @@ pub struct HalfSpace {
 }
 
 impl Collider for HalfSpace {
-    fn on_surface(&self, pos: Vec3) -> Option<Vec3> {
-        let to_surface = pos - self.normal * self.k;
-        let dist = to_surface.dot(self.normal);
+    fn normal(&self, _pos: Vec3) -> Vec3 {
+        self.normal
+    }
+    fn exit_vector(&self, pos: Vec3) -> Option<Vec3> {
+        let to_pos = pos - self.normal * self.k;
+        let dist = to_pos.dot(self.normal);
         if dist > 0.0 {
             return None;
         }
-        return Some(pos - dist * self.normal);
+        return Some(-dist * self.normal);
     }
 }

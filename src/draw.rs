@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 
-use crate::particle::Particle;
+use crate::particle::ParticleTrajectory;
 
 
 pub fn draw_particles(
-    particles: Query<&Particle>,
+    particles: Query<&ParticleTrajectory>,
 ) {
-    
+
 }
