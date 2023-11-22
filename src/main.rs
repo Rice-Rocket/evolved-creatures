@@ -1,9 +1,13 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
-use particle::{ParticleTrajectory, apply_particle_gravity, apply_collision, update_particle_positions, update_particle_velocities, ParticleAccelerateSet, ParticleProperties, Particle};
+use bevy::prelude::*;
+use body::SoftBody;
+use draw::{draw_particles, setup_gizmo_config};
+use particle::{apply_particle_gravity, apply_collision, update_particle_positions, update_particle_velocities, ParticleAccelerateSet, ParticleProperties};
+use bevy_inspector_egui::quick::FilterQueryInspectorPlugin;
 
 pub mod particle;
 pub mod draw;
 pub mod collision;
+pub mod body;
 
 use collision::*;
 
@@ -13,6 +17,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
 
+        .add_systems(Startup, setup_gizmo_config)
+        .add_systems(Update, draw_particles)
         .add_systems(Update, (
             update_particle_positions.before(ParticleAccelerateSet),
             update_particle_velocities.after(ParticleAccelerateSet),
@@ -22,36 +28,30 @@ fn main() {
             apply_collision::<HalfSpace>,
         ).in_set(ParticleAccelerateSet))
 
+        .register_type::<ColliderProperties>()
+        .register_type::<HalfSpace>()
+
+        .add_plugins(FilterQueryInspectorPlugin::<With<ColliderProperties>>::default())
+
         .run();
 }
 
 
 fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn(Camera2dBundle::default());
 
-    for i in -10..10 {
-        let pos = Vec3::new(i as f32, 0.0, 0.0) * 50.0;
-
-        commands.spawn((
-            MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Circle::new(5.0).into()).into(),
-                material: materials.add(ColorMaterial::from(Color::RED)),
-                transform: Transform::from_translation(pos),
-                ..default()
-            },
-            Particle {
-                properties: ParticleProperties {
-                    mass: 10.0,
-                    restitution: 0.5,
-                },
-                trajectory: ParticleTrajectory::default(),
-            },
-        ));
-    }
+    commands.spawn(
+        SoftBody::rect(
+            IVec2::new(20, 3), 
+            Transform::from_xyz(0.0, 100.0, 0.0).with_scale(Vec3::new(1000.0, 200.0, 0.0))
+        )
+        .with_particle_properties(ParticleProperties {
+            mass: 10.0,
+            restitution: 0.5,
+        })
+    );
 
     commands.spawn((
         HalfSpace {
@@ -61,7 +61,7 @@ fn setup(
         ColliderProperties {
             elasticity: 20000.0,
             friction: 1.0,
-            restitution: 1.0,
+            restitution: 100.0,
         }
     ));
 }
