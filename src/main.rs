@@ -1,7 +1,4 @@
 use bevy::prelude::*;
-use body::{SoftBody, SoftBodyMassPoints, SoftBodySprings};
-use draw::{draw_particles, setup_gizmo_config, draw_springs, draw_colliders};
-use particle::{apply_particle_gravity, apply_collision, update_particle_positions, update_particle_velocities, ParticleAccelerateSet, ParticleProperties};
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 
@@ -13,11 +10,11 @@ pub mod spring;
 pub mod sim;
 
 use collision::*;
-use sim::{PhysicsSimulationSchedule, run_physics_sim_schedule, PhysicsSimulationSettings};
-use spring::{SpringProperties, apply_spring_force};
-
-
-
+use sim::*;
+use spring::*;
+use particle::*;
+use draw::*;
+use body::{*, standard::*, constrained::*};
 
 
 fn main() {
@@ -45,6 +42,7 @@ fn main() {
         .add_systems(PhysicsSimulationSchedule, (
             apply_particle_gravity,
             apply_spring_force,
+            apply_constraint_force,
             apply_collision::<HalfSpace>,
             apply_collision::<StaticPolygon>,
         ).in_set(ParticleAccelerateSet).after(update_particle_positions))
@@ -68,22 +66,44 @@ fn setup(
     commands.spawn(Camera2dBundle::default());
 
     commands.spawn(
-        SoftBody::rect(
-            IVec2::new(30, 15), 
-            Transform::from_xyz(0.0, 100.0, 0.0).with_scale(Vec3::new(300.0, 150.0, 0.0))
+        ConstrainedSoftBody::rect(
+            IVec2::new(20, 10), 
+            Transform::from_xyz(0.0, 300.0, 0.0).with_scale(Vec3::new(150.0, 75.0, 0.0))
         )
+        .with_properties(ConstraintProperties {
+            stiffness: 50000.0,
+            damping: 20.0,
+        })
         .with_particle_properties(ParticleProperties {
             mass: 10.0,
             restitution: 0.5,
         })
         .with_spring_properties(SpringProperties {
             stiffness: 60000.0,
-            damping: 50.0,
+            damping: 20.0,
             ..default()
         })
         .tesselate_from_dims(IVec2::new(20, 10))
         .set_spring_rest_lengths()
     );
+
+    // commands.spawn(
+    //     StandardSoftBody::rect(
+    //         IVec2::new(30, 15), 
+    //         Transform::from_xyz(0.0, 100.0, 0.0).with_scale(Vec3::new(300.0, 150.0, 0.0))
+    //     )
+    //     .with_particle_properties(ParticleProperties {
+    //         mass: 10.0,
+    //         restitution: 0.5,
+    //     })
+    //     .with_spring_properties(SpringProperties {
+    //         stiffness: 60000.0,
+    //         damping: 50.0,
+    //         ..default()
+    //     })
+    //     .tesselate_from_dims(IVec2::new(20, 10))
+    //     .set_spring_rest_lengths()
+    // );
 
     let collider_props = ColliderProperties {
         elasticity: 20000.0,

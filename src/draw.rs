@@ -1,6 +1,6 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
-use crate::{body::{SoftBodyMassPoints, SoftBodySprings}, collision::{HalfSpace, StaticPolygon}};
+use crate::{collision::{HalfSpace, StaticPolygon}, body::{SoftBodyMassPoints, SoftBodySprings}};
 
 
 pub fn setup_gizmo_config(

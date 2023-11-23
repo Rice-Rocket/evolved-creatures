@@ -2,20 +2,27 @@ use bevy::prelude::*;
 
 use crate::{particle::{ParticleTrajectory, ParticleProperties}, spring::{Spring, SpringProperties}};
 
+use super::{SoftBodyMassPoints, SoftBodySprings};
+
 
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Debug, Default)]
-pub struct SoftBodyMassPoints(pub Vec<(ParticleTrajectory, ParticleProperties)>);
+pub struct SoftBodyReferenceMassPoints(pub Vec<(Vec3, Vec3)>);
 
 #[derive(Component, Reflect, Debug, Default)]
 #[reflect(Debug, Default)]
-pub struct SoftBodySprings(pub Vec<Spring>);
+pub struct ConstraintProperties {
+    pub stiffness: f32,
+    pub damping: f32,
+}
 
 
 #[derive(Bundle)]
-pub struct SoftBody {
+pub struct ConstrainedSoftBody {
     pub mass_points: SoftBodyMassPoints,
     pub springs: SoftBodySprings,
+    pub reference_points: SoftBodyReferenceMassPoints,
+    pub constraint_props: ConstraintProperties,
 
     #[bundle(ignore)]
     cached_transform: Transform,
@@ -23,7 +30,7 @@ pub struct SoftBody {
     spring_properties: SpringProperties,
 }
 
-impl SoftBody {
+impl ConstrainedSoftBody {
     /// Rectangle with given dimensions and transformation with no springs
     pub fn rect(dims: IVec2, transform: Transform) -> Self {
         let mut particles = Vec::new();
@@ -31,6 +38,8 @@ impl SoftBody {
 
         for i in 0..dims.x {
             for j in 0..dims.y {
+                if (dims.x - 1 > i && i > 0) && (dims.y - 1 > j && j > 0) { continue };
+
                 let x = i as f32 / dims.x as f32 - 0.5;
                 let y = j as f32 / dims.y as f32 - 0.5;
                 let pos = transform_mat * Vec4::new(x, y, 1.0, 1.0);
@@ -45,13 +54,19 @@ impl SoftBody {
         };
 
         Self {
-            mass_points: SoftBodyMassPoints(particles),
+            mass_points: SoftBodyMassPoints(particles.clone()),
             springs: SoftBodySprings(Vec::new()),
+            reference_points: SoftBodyReferenceMassPoints(particles.iter().map(|x| (x.0.position, x.0.position)).collect()),
+            constraint_props: ConstraintProperties::default(),
             cached_transform: transform,
             spring_properties: SpringProperties::default(),
         }
     }
 
+    pub fn with_properties(mut self, properties: ConstraintProperties) -> Self {
+        self.constraint_props = properties;
+        self
+    }
     pub fn with_spring_properties(mut self, properties: SpringProperties) -> Self {
         for spring in self.springs.0.iter_mut() {
             spring.properties = properties.clone();
@@ -101,9 +116,7 @@ impl SoftBody {
     }
     pub fn tesselate_from_dims(self, dims: IVec2) -> Self {
         let dists = self.cached_transform.scale / Vec3::new(dims.x as f32, dims.y as f32, 1.0);
-        let hypot = (dists.x * dists.x + dists.y * dists.y).sqrt();
-
-        self.tesselate_from_dist(hypot + 0.0001)
+        self.tesselate_from_dist(dists.x.max(dists.y) + 0.0001)
     }
 
     pub fn set_spring_rest_lengths(mut self) -> Self {

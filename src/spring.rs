@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::body::{SoftBodyMassPoints, SoftBodySprings};
+use crate::body::{SoftBodyMassPoints, SoftBodySprings, constrained::{SoftBodyReferenceMassPoints, ConstraintProperties}};
 
 
 #[derive(Reflect, Debug, Default, Clone)]
@@ -41,6 +41,53 @@ pub fn apply_spring_force(
 
             particles.0[spring.p1_idx].0.acceleration += f;
             particles.0[spring.p2_idx].0.acceleration -= f;
+        }
+    }
+}
+
+
+pub fn apply_constraint_force(
+    mut bodies: Query<(&mut SoftBodyMassPoints, &mut SoftBodyReferenceMassPoints, &ConstraintProperties)>,
+) {
+    for (mut points, mut ref_points, props) in bodies.iter_mut() {
+        let mut avg_points_position = Vec3::ZERO;
+        let mut avg_refs_position = Vec3::ZERO;
+        for (point, ref_point) in points.0.iter().zip(ref_points.0.iter()) {
+            avg_points_position += point.0.position;
+            avg_refs_position += ref_point.0;
+        }
+        avg_points_position /= ref_points.0.len() as f32;
+        avg_refs_position /= ref_points.0.len() as f32;
+        let avg_position = avg_points_position - avg_refs_position;
+        
+        let mut avg_rotation = 0f32;
+        for (point, ref_point) in points.0.iter().zip(ref_points.0.iter()) {
+            let edge_1 = (point.0.position - avg_points_position).normalize();
+            let edge_2 = (ref_point.0 - avg_refs_position).normalize();
+            // let theta = (edge_1.x * edge_2.y - edge_1.y * edge_2.x).atan2(edge_1.x * edge_2.x + edge_1.y * edge_2.y);
+            let theta = edge_1.dot(edge_2).clamp(-1.0, 1.0).acos();
+            avg_rotation += theta;
+        }
+        avg_rotation /= ref_points.0.len() as f32;
+        
+        let mut transform = Transform::from_translation(avg_position);
+        transform.rotate_around(avg_points_position, Quat::from_euler(EulerRot::ZXY, -avg_rotation, 0.0, 0.0));
+    
+        for (point, ref_point) in points.0.iter_mut().zip(ref_points.0.iter_mut()) {
+            let transformed_ref = transform.transform_point(ref_point.0);
+            let ref_vel = ref_point.0 - ref_point.1;
+
+            let pv = transformed_ref - point.0.position;
+            let dist = pv.length();
+            if dist > -0.001 && dist < 0.001 { continue };
+
+            let pn = pv / dist;
+            let vel_dif = ref_vel - point.0.velocity;
+            let proj_vel_mag = pn.dot(vel_dif) * props.damping * pn;
+            let f = pn * props.stiffness * dist + proj_vel_mag;
+
+            point.0.acceleration += f;
+            ref_point.1 = ref_point.0;
         }
     }
 }

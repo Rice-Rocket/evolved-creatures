@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{collision::{Collider, ColliderProperties}, body::SoftBodyMassPoints, sim::PhysicsSimulationSettings};
+use crate::{collision::{Collider, ColliderProperties}, sim::PhysicsSimulationSettings, body::SoftBodyMassPoints};
 
 
 #[derive(SystemSet, Hash, Debug, Eq, PartialEq, Clone)]
