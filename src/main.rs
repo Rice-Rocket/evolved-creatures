@@ -14,7 +14,7 @@ use sim::*;
 use spring::*;
 use particle::*;
 use draw::*;
-use body::{*, standard::*, constrained::*};
+use body::{*, constrained::*};
 
 
 fn main() {
@@ -106,7 +106,7 @@ fn setup(
     // );
 
     let collider_props = ColliderProperties {
-        elasticity: 20000.0,
+        elasticity: 50000.0,
         friction: 300.0,
         restitution: 100.0,
     };

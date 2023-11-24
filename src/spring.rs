@@ -64,7 +64,6 @@ pub fn apply_constraint_force(
         for (point, ref_point) in points.0.iter().zip(ref_points.0.iter()) {
             let edge_1 = (point.0.position - avg_points_position).normalize();
             let edge_2 = (ref_point.0 - avg_refs_position).normalize();
-            // let theta = (edge_1.x * edge_2.y - edge_1.y * edge_2.x).atan2(edge_1.x * edge_2.x + edge_1.y * edge_2.y);
             let theta = edge_1.dot(edge_2).clamp(-1.0, 1.0).acos();
             avg_rotation += theta;
         }

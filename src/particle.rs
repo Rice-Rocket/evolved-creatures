@@ -38,12 +38,16 @@ pub fn apply_collision<T: Component + Collider>(
 ) {
     for (collider, collider_props) in colliders.iter() {
         for mut particles in bodies.iter_mut() {
-            for (particle, props) in particles.0.iter_mut() {
+            for (particle, _props) in particles.0.iter_mut() {
                 match collider.exit_vector(particle.position) {
                     Some(exit_vec) => {
+                        let exit_vec_len = exit_vec.length_recip();
+                        if !exit_vec_len.is_finite() || exit_vec_len <= 0.0 { continue };
                         let dir = exit_vec.normalize();
+
                         let normal_vel = particle.velocity.dot(dir);
                         let tangent_vel = particle.velocity - normal_vel * dir;
+
                         particle.acceleration += exit_vec * collider_props.elasticity;
                         particle.acceleration += -normal_vel * dir * collider_props.restitution;
                         particle.acceleration += -tangent_vel * collider_props.friction;
