@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::body::{SoftBodyMassPoints, SoftBodySprings, constrained::{SoftBodyReferenceMassPoints, ConstraintProperties}};
+use crate::body::{SoftBodyMassPoints, SoftBodySprings, constrained::{SoftBodyReferenceMassPoints, ConstraintProperties}, resizable::ResizableSoftBodyProperties};
 
 
 #[derive(Reflect, Debug, Default, Clone)]
@@ -87,6 +87,24 @@ pub fn apply_constraint_force(
 
             point.0.acceleration += f;
             ref_point.1 = ref_point.0;
+        }
+    }
+}
+
+
+pub fn resize_springs(
+    mut bodies: Query<(&mut SoftBodySprings, &mut ResizableSoftBodyProperties)>,
+) {
+    for (mut springs, mut props) in bodies.iter_mut() {
+        if props.is_quad {
+            let area = props.dims.x * props.dims.y;
+            let dim_ratio = (props.target_volume / area).sqrt();
+
+            for spring in springs.0.iter_mut() {
+                spring.properties.rest_length *= dim_ratio;
+            }
+
+            props.dims *= dim_ratio;
         }
     }
 }

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::quick::ResourceInspectorPlugin;
+use bevy_inspector_egui::quick::{ResourceInspectorPlugin, FilterQueryInspectorPlugin};
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 
 pub mod particle;
@@ -14,7 +14,9 @@ use sim::*;
 use spring::*;
 use particle::*;
 use draw::*;
-use body::{*, constrained::*};
+
+#[allow(unused_imports)]
+use body::{*, constrained::*, resizable::*, standard::*};
 
 
 fn main() {
@@ -43,6 +45,7 @@ fn main() {
             apply_particle_gravity,
             apply_spring_force,
             apply_constraint_force,
+            resize_springs,
             apply_collision::<HalfSpace>,
             apply_collision::<StaticPolygon>,
         ).in_set(ParticleAccelerateSet).after(update_particle_positions))
@@ -52,10 +55,12 @@ fn main() {
         .register_type::<SoftBodyMassPoints>()
         .register_type::<SoftBodySprings>()
         .register_type::<PhysicsSimulationSettings>()
+        .register_type::<ResizableSoftBodyProperties>()
 
         .add_plugins(ScreenDiagnosticsPlugin::default())
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ResourceInspectorPlugin::<PhysicsSimulationSettings>::default())
+        .add_plugins(FilterQueryInspectorPlugin::<With<ResizableSoftBodyProperties>>::default())
 
         .run();
 }
@@ -66,26 +71,42 @@ fn setup(
     commands.spawn(Camera2dBundle::default());
 
     commands.spawn(
-        ConstrainedSoftBody::rect(
-            IVec2::new(20, 10), 
+        ResizableSoftBody::square(
             Transform::from_xyz(0.0, 300.0, 0.0).with_scale(Vec3::new(150.0, 75.0, 0.0))
         )
-        .with_properties(ConstraintProperties {
-            stiffness: 50000.0,
-            damping: 20.0,
-        })
         .with_particle_properties(ParticleProperties {
             mass: 10.0,
             restitution: 0.5,
         })
         .with_spring_properties(SpringProperties {
-            stiffness: 60000.0,
+            stiffness: 10000.0,
             damping: 20.0,
             ..default()
         })
-        .tesselate_from_dims(IVec2::new(20, 10))
+        .tesselate_from_dims()
         .set_spring_rest_lengths()
     );
+    // commands.spawn(
+    //     ConstrainedSoftBody::rect(
+    //         IVec2::new(20, 10), 
+    //         Transform::from_xyz(0.0, 300.0, 0.0).with_scale(Vec3::new(150.0, 75.0, 0.0))
+    //     )
+    //     .with_properties(ConstraintProperties {
+    //         stiffness: 50000.0,
+    //         damping: 20.0,
+    //     })
+    //     .with_particle_properties(ParticleProperties {
+    //         mass: 10.0,
+    //         restitution: 0.5,
+    //     })
+    //     .with_spring_properties(SpringProperties {
+    //         stiffness: 60000.0,
+    //         damping: 20.0,
+    //         ..default()
+    //     })
+    //     .tesselate_from_dims(IVec2::new(20, 10))
+    //     .set_spring_rest_lengths()
+    // );
 
     // commands.spawn(
     //     StandardSoftBody::rect(

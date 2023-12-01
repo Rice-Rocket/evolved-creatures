@@ -4,6 +4,7 @@ use crate::{particle::{ParticleTrajectory, ParticleProperties}, spring::Spring};
 
 pub mod standard;
 pub mod constrained;
+pub mod resizable;
 
 
 #[derive(Component, Reflect, Debug, Default)]
