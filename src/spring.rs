@@ -98,7 +98,8 @@ pub fn resize_springs(
     for (mut springs, mut props) in bodies.iter_mut() {
         if props.is_quad {
             let area = props.dims.x * props.dims.y;
-            let dim_ratio = (props.target_volume / area).sqrt();
+            let mut dim_ratio = (props.target_volume / area).sqrt();
+            dim_ratio = dim_ratio + (1.0 - dim_ratio) * 0.99;
 
             for spring in springs.0.iter_mut() {
                 spring.properties.rest_length *= dim_ratio;

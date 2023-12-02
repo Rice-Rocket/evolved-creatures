@@ -5,12 +5,24 @@ use crate::{particle::{ParticleTrajectory, ParticleProperties}, spring::{Spring,
 use super::{SoftBodyMassPoints, SoftBodySprings};
 
 
-#[derive(Component, Default, Reflect, Debug)]
+#[derive(Component, Reflect, Debug)]
 #[reflect(Debug, Default)]
 pub struct ResizableSoftBodyProperties {
     pub target_volume: f32,
     pub dims: Vec2,
     pub is_quad: bool,
+    pub smoothness: f32,
+}
+
+impl Default for ResizableSoftBodyProperties {
+    fn default() -> Self {
+        Self {
+            target_volume: 0.0,
+            dims: Vec2::ZERO,
+            is_quad: true,
+            smoothness: 0.5,
+        }
+    }
 }
 
 
@@ -60,6 +72,10 @@ impl ResizableSoftBody {
         }
     }
 
+    pub fn with_smoothness(mut self, smoothness: f32) -> Self {
+        self.properties.smoothness = smoothness;
+        self
+    }
     pub fn with_spring_properties(mut self, properties: SpringProperties) -> Self {
         for spring in self.springs.0.iter_mut() {
             spring.properties = properties.clone();

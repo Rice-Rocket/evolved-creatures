@@ -29,6 +29,7 @@ fn main() {
             ..default()
         }))
         .add_systems(Startup, setup)
+        .add_systems(Update, update)
 
         .add_systems(Startup, setup_gizmo_config)
         .add_systems(Update, (draw_particles, draw_springs, draw_colliders))
@@ -74,12 +75,13 @@ fn setup(
         ResizableSoftBody::square(
             Transform::from_xyz(0.0, 300.0, 0.0).with_scale(Vec3::new(150.0, 75.0, 0.0))
         )
+        .with_smoothness(0.99)
         .with_particle_properties(ParticleProperties {
             mass: 10.0,
             restitution: 0.5,
         })
         .with_spring_properties(SpringProperties {
-            stiffness: 10000.0,
+            stiffness: 50000.0,
             damping: 20.0,
             ..default()
         })
@@ -141,6 +143,22 @@ fn setup(
     ));
 
     commands.spawn((
+        HalfSpace {
+            normal: Vec3::new(1.0, 0.0, 0.0).normalize(),
+            k: -600.0,
+        },
+        collider_props.clone(),
+    ));
+
+    commands.spawn((
+        HalfSpace {
+            normal: Vec3::new(-1.0, 0.0, 0.0).normalize(),
+            k: -600.0,
+        },
+        collider_props.clone(),
+    ));
+
+    commands.spawn((
         StaticPolygon::new_square()
             .with_transform(
                 Transform::from_xyz(-150.0, -80.0, 0.0)
@@ -162,4 +180,14 @@ fn setup(
         ),
         collider_props.clone(),
     ));
+}
+
+
+fn update(
+    mut resizable_bodies: Query<&mut ResizableSoftBodyProperties>,
+    time: Res<Time>,
+) {
+    for mut body in resizable_bodies.iter_mut() {
+        body.target_volume = 11250.0 + 10000.0 * time.elapsed_seconds().sin().cbrt();
+    }
 }
