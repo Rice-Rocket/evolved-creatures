@@ -27,7 +27,7 @@ impl Default for SoftBodySimulationSettings {
 }
 
 
-pub fn run_physics_sim_schedule(world: &mut World) {
+pub(crate) fn run_physics_sim_schedule(world: &mut World) {
     let time = world.resource::<Time>();
     let dt = time.delta_seconds();
     let elapsed = time.elapsed_seconds();

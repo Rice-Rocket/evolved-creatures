@@ -20,7 +20,7 @@ pub struct SpringProperties {
 }
 
 
-pub fn apply_spring_force(
+pub(crate) fn apply_spring_force(
     mut bodies: Query<(&mut SoftBodyMassPoints, &SoftBodySprings)>
 ) {
     for (mut particles, springs) in bodies.iter_mut() {
@@ -46,7 +46,7 @@ pub fn apply_spring_force(
 }
 
 
-pub fn apply_constraint_force(
+pub(crate) fn apply_constraint_force(
     mut bodies: Query<(&mut SoftBodyMassPoints, &mut SoftBodyReferenceMassPoints, &ConstraintProperties)>,
 ) {
     for (mut points, mut ref_points, props) in bodies.iter_mut() {
@@ -92,7 +92,7 @@ pub fn apply_constraint_force(
 }
 
 
-pub fn resize_springs(
+pub(crate) fn resize_springs(
     mut bodies: Query<(&mut SoftBodySprings, &mut ResizableSoftBodyProperties)>,
 ) {
     for (mut springs, mut props) in bodies.iter_mut() {

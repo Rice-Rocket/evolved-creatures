@@ -3,13 +3,13 @@ use bevy::{prelude::*, window::PrimaryWindow};
 use crate::{collider::{HalfSpace, StaticPolygon}, body::{SoftBodyMassPoints, SoftBodySprings}};
 
 
-pub fn setup_gizmo_config(
+pub(crate) fn setup_gizmo_config(
     mut config: ResMut<GizmoConfig>
 ) {
     config.line_width = 5.0;
 }
 
-pub fn draw_particles(
+pub(crate) fn draw_particles(
     mut gizmos: Gizmos,
     mass_point_bodies: Query<&SoftBodyMassPoints>,
 ) {
@@ -20,7 +20,7 @@ pub fn draw_particles(
     }
 }
 
-pub fn draw_springs(
+pub(crate) fn draw_springs(
     mut gizmos: Gizmos,
     bodies: Query<(&SoftBodySprings, &SoftBodyMassPoints)>,
 ) {
@@ -33,7 +33,7 @@ pub fn draw_springs(
     }
 }
 
-pub fn draw_colliders(
+pub(crate) fn draw_colliders(
     mut gizmos: Gizmos,
     polygons: Query<&StaticPolygon>,
     halfspaces: Query<&HalfSpace>,

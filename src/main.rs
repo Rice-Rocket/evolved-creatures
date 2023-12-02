@@ -17,33 +17,9 @@ fn main() {
         }))
         .add_systems(Startup, setup)
         .add_systems(Update, update)
-
-        .add_systems(Startup, setup_gizmo_config)
-        .add_systems(Update, (draw_particles, draw_springs, draw_colliders))
-
-        .init_resource::<SoftBodySimulationSettings>()
-        .add_schedule(Schedule::new(SoftBodySimulationSchedule))
         
-        .add_systems(Update, run_physics_sim_schedule)
-        .add_systems(SoftBodySimulationSchedule, (
-            update_particle_positions.before(ParticleAccelerateSet),
-            update_particle_velocities.after(ParticleAccelerateSet),
-        ))
-        .add_systems(SoftBodySimulationSchedule, (
-            apply_particle_gravity,
-            apply_spring_force,
-            apply_constraint_force,
-            resize_springs,
-            apply_collision::<HalfSpace>,
-            apply_collision::<StaticPolygon>,
-        ).in_set(ParticleAccelerateSet).after(update_particle_positions))
-
-        .register_type::<ColliderProperties>()
-        .register_type::<HalfSpace>()
-        .register_type::<SoftBodyMassPoints>()
-        .register_type::<SoftBodySprings>()
-        .register_type::<SoftBodySimulationSettings>()
-        .register_type::<ResizableSoftBodyProperties>()
+        .add_plugins(SoftBodySimulationPlugin)
+        .add_plugins(SoftBodyDrawPlugin)
 
         .add_plugins(ScreenDiagnosticsPlugin::default())
         .add_plugins(ScreenFrameDiagnosticsPlugin)
@@ -122,7 +98,7 @@ fn setup(
     };
 
     commands.spawn((
-        HalfSpace {
+        collider::HalfSpace {
             normal: Vec3::new(0.0, 1.0, 0.0).normalize(),
             k: -300.0,
         },
@@ -130,7 +106,7 @@ fn setup(
     ));
 
     commands.spawn((
-        HalfSpace {
+        collider::HalfSpace {
             normal: Vec3::new(1.0, 0.0, 0.0).normalize(),
             k: -600.0,
         },
@@ -138,7 +114,7 @@ fn setup(
     ));
 
     commands.spawn((
-        HalfSpace {
+        collider::HalfSpace {
             normal: Vec3::new(-1.0, 0.0, 0.0).normalize(),
             k: -600.0,
         },
@@ -146,7 +122,7 @@ fn setup(
     ));
 
     commands.spawn((
-        StaticPolygon::new_square()
+        collider::StaticPolygon::new_square()
             .with_transform(
                 Transform::from_xyz(-150.0, -80.0, 0.0)
                 .with_scale(Vec3::new(200.0, 100.0, 1.0))
@@ -156,7 +132,7 @@ fn setup(
     ));
 
     commands.spawn((
-        StaticPolygon::from_vertices(vec![
+        collider::StaticPolygon::from_vertices(vec![
             Vec3::new(-0.5, -0.5, 0.0), Vec3::new(0.5, -0.5, 0.0), 
             Vec3::new(0.4, 0.5, 0.0), Vec3::new(0.0, -0.2, 0.0), 
             Vec3::new(-0.4, 0.5, 0.0), 

@@ -32,7 +32,7 @@ pub struct ParticleTrajectory {
     pub old_acceleration: Vec3,
 }
 
-pub fn apply_collision<T: Component + Collider>(
+pub(crate) fn apply_collision<T: Component + Collider>(
     colliders: Query<(&T, &ColliderProperties)>,
     mut bodies: Query<&mut SoftBodyMassPoints>,
 ) {
@@ -59,7 +59,7 @@ pub fn apply_collision<T: Component + Collider>(
     }
 }
 
-pub fn apply_particle_gravity(
+pub(crate) fn apply_particle_gravity(
     mut bodies: Query<&mut SoftBodyMassPoints>,
 ) {
     for mut particles in bodies.iter_mut() {
@@ -69,7 +69,7 @@ pub fn apply_particle_gravity(
     }
 }
 
-pub fn update_particle_positions(
+pub(crate) fn update_particle_positions(
     mut bodies: Query<&mut SoftBodyMassPoints>,
     settings: Res<SoftBodySimulationSettings>,
 ) {
@@ -81,7 +81,7 @@ pub fn update_particle_positions(
     }
 }
 
-pub fn update_particle_velocities(
+pub(crate) fn update_particle_velocities(
     mut bodies: Query<&mut SoftBodyMassPoints>,
     settings: Res<SoftBodySimulationSettings>,
 ) {
