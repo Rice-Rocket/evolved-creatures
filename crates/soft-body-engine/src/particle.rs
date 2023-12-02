@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{collision::{Collider, ColliderProperties}, sim::PhysicsSimulationSettings, body::SoftBodyMassPoints};
+use crate::{collider::{Collider, ColliderProperties}, sim::SoftBodySimulationSettings, body::SoftBodyMassPoints};
 
 
 #[derive(SystemSet, Hash, Debug, Eq, PartialEq, Clone)]
@@ -71,7 +71,7 @@ pub fn apply_particle_gravity(
 
 pub fn update_particle_positions(
     mut bodies: Query<&mut SoftBodyMassPoints>,
-    settings: Res<PhysicsSimulationSettings>,
+    settings: Res<SoftBodySimulationSettings>,
 ) {
     let dt = settings.sub_dt;
     for mut particles in bodies.iter_mut() {
@@ -83,7 +83,7 @@ pub fn update_particle_positions(
 
 pub fn update_particle_velocities(
     mut bodies: Query<&mut SoftBodyMassPoints>,
-    settings: Res<PhysicsSimulationSettings>,
+    settings: Res<SoftBodySimulationSettings>,
 ) {
     let dt = settings.sub_dt;
     for mut particles in bodies.iter_mut() {
