@@ -31,10 +31,13 @@ pub fn main() {
 }
 
 fn setup(
+    mut gizmo_config: ResMut<GizmoConfig>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    gizmo_config.depth_bias = -1.0;
+
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(5.0, 3.0, 4.0).looking_at(Vec3::ZERO, Vec3::Y),
@@ -49,27 +52,31 @@ fn setup(
             ..default()
         },
         properties: RigidBodyProperties {
+            scale: Vec3::new(1.0, 2.0, 1.0),
             mass: 1.0,
             ..default()
         },
         object: PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
             material: materials.add(StandardMaterial::from(Color::rgb(1.0, 0.0, 0.0))),
-            transform: Transform::from_scale(Vec3::new(1.0, 2.0, 1.0)),
             ..default()
         },
         ..default()
     });
 
     commands.spawn(RigidBodyObject {
+        state: RigidBodyState {
+            position: Vec3::new(0.0, -5.0, 0.0),
+            ..default()
+        },
         properties: RigidBodyProperties {
+            scale: Vec3::new(10.0, 10.0, 10.0),
             mass: 1.0,
             locked: true,
         },
         object: PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
             material: materials.add(StandardMaterial::from(Color::rgb(1.0, 1.0, 1.0))),
-            transform: Transform::from_scale(Vec3::new(10.0, 0.01, 10.0)),
             ..default()
         },
         ..default()

@@ -24,19 +24,25 @@ pub(crate) fn update_velocities(
             state.velocity = Vec3::ZERO;
             state.acceleration = Vec3::ZERO;
             state.old_acceleration = Vec3::ZERO;
+            state.force = Vec3::ZERO;
+            state.torque = Vec3::ZERO;
             continue;
         }
-        
-        state.velocity = state.velocity + 0.5 * (state.old_acceleration + state.acceleration) / props.mass * dt;
+
+        state.acceleration = state.force / props.mass;
+        state.velocity = state.velocity + 0.5 * (state.old_acceleration + state.acceleration) * dt;
         state.old_acceleration = state.acceleration;
-        state.acceleration = Vec3::ZERO;
+
+        state.force = Vec3::ZERO;
+        state.torque = Vec3::ZERO;
     }
 }
 
 pub(crate) fn update_object_transform(
-    mut bodies: Query<(&mut Transform, &RigidBodyState)>,
+    mut bodies: Query<(&mut Transform, &RigidBodyState, &RigidBodyProperties)>,
 ) {
-    for (mut transform, state) in bodies.iter_mut() {
+    for (mut transform, state, props) in bodies.iter_mut() {
         transform.translation = state.position;
+        transform.scale = props.scale;
     }
 }

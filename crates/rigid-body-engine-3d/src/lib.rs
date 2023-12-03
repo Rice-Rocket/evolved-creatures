@@ -26,6 +26,7 @@ impl Plugin for RigidBodySimulationPlugin {
             ))
             .add_systems(RigidBodySimulationSchedule, (
                 apply_gravity,
+                apply_collisions,
             ).in_set(ApplyForcesSet).after(update_positions))
             .add_systems(Update, update_object_transform.after(run_physics_sim_schedule))
 
