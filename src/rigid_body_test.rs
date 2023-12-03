@@ -44,6 +44,10 @@ fn setup(
     ));
 
     commands.spawn(RigidBodyObject {
+        state: RigidBodyState {
+            position: Vec3::new(0.0, 4.0, 0.0),
+            ..default()
+        },
         properties: RigidBodyProperties {
             mass: 1.0,
             ..default()
