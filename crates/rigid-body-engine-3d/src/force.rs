@@ -11,7 +11,7 @@ pub(crate) fn apply_gravity(
     mut bodies: Query<(&mut RigidBodyState, &RigidBodyProperties)>,
 ) {
     for (mut state, props) in bodies.iter_mut() {
-        state.force += Vec3::new(0.0, -1.0, 0.0) * props.mass;
+        state.force += Vec3::new(0.0, -10.0, 0.0) * props.mass;
     }
 }
 
@@ -28,8 +28,36 @@ pub(crate) fn apply_collisions(
             if state_2.intersects(*vertex, props_2.scale) {
                 collided_pairs.insert((entity_1, entity_2));
 
-                gizmos.line(*vertex, state_2.exterior_point(*vertex, props_2.scale), Color::BLUE);
-                gizmos.sphere(Vec3::ZERO, Quat::IDENTITY, 5.0, Color::GREEN);
+                let exterior_point = state_2.exterior_point(*vertex, props_2.scale);
+                let d = exterior_point - *vertex;
+                let dist = d.length();
+
+                if dist == 0.0 { continue };
+
+                let kt = props_2.roughness * 4.0;
+                let kn = (1.0 - props_2.resilience).powi(10);
+                let kc = props_2.hardness * 1000.0;
+
+                let v = state_1.velocity_at_point(*vertex);
+                let vvel = state_2.velocity_at_point(*vertex);
+                let vdiff = v - vvel;
+                let n = d / dist;
+                let vn = vdiff.dot(n) * n;
+                let vt = (vn * n - vdiff) * kt;
+                let b = (kc * props_1.mass).sqrt() * 2.0 * kn;
+                let f = -(d * kc - b * vn + vt) * props_1.mass;
+
+                if !props_1.locked {
+                    let center = state_1.position;
+                    state_1.force -= f;
+                    state_1.torque += (*vertex - center).cross(-f);
+                }
+
+                if !props_2.locked {
+                    let center = state_2.position;
+                    state_2.force += f;
+                    state_2.torque += (*vertex - center).cross(f);
+                }
             }
         }
     }

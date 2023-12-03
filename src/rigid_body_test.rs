@@ -25,7 +25,7 @@ pub fn main() {
         .add_plugins(ScreenDiagnosticsPlugin::default())
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         // .add_plugins(ResourceInspectorPlugin::<SoftBodySimulationSettings>::default())
-        // .add_plugins(FilterQueryInspectorPlugin::<With<ResizableSoftBodyProperties>>::default())
+        .add_plugins(FilterQueryInspectorPlugin::<With<RigidBodyProperties>>::default())
 
         .run();
 }
@@ -71,6 +71,9 @@ fn setup(
         },
         properties: RigidBodyProperties {
             scale: Vec3::new(10.0, 10.0, 10.0),
+            hardness: 1.0,
+            roughness: 1.0,
+            resilience: 0.2,
             mass: 1.0,
             locked: true,
         },

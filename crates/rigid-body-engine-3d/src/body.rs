@@ -15,6 +15,9 @@ pub struct RigidBodyObject {
 pub struct RigidBodyProperties {
     pub scale: Vec3,
     pub mass: f32,
+    pub hardness: f32,
+    pub resilience: f32,
+    pub roughness: f32,
     pub locked: bool,
 }
 
@@ -22,6 +25,9 @@ impl Default for RigidBodyProperties {
     fn default() -> Self {
         Self {
             scale: Vec3::ONE,
+            hardness: 1.0,
+            resilience: 0.2,
+            roughness: 1.0,
             mass: 1.0,
             locked: false,
         }
@@ -43,13 +49,13 @@ pub struct RigidBodyState {
 
 impl RigidBodyState {
     pub fn localize(&self, point: Vec3) -> Vec3 {
-        return /* rotation * */ (point - self.position);
+        /* rotation * */ (point - self.position)
     }
 
     pub fn sdf(&self, point: Vec3, scale: Vec3) -> f32 {
         let p = self.localize(point);
         let q = p.abs() - scale / 2.0;
-        return q.max(Vec3::ZERO).length() + q.max_element().min(0.0); 
+        q.max(Vec3::ZERO).length() + q.max_element().min(0.0)
     }
 
     pub fn sdf_gradient(&self, point: Vec3, scale: Vec3) -> Vec3 {
@@ -82,11 +88,15 @@ impl RigidBodyState {
     }
 
     pub fn exterior_point(&self, point: Vec3, scale: Vec3) -> Vec3 {
-        return point + self.sdf_gradient(point, scale) * -self.sdf(point, scale);
+        point + self.sdf_gradient(point, scale) * -self.sdf(point, scale)
     }
 
     pub fn intersects(&self, point: Vec3, scale: Vec3) -> bool {
-        return self.sdf(point, scale) <= 0.0;
+        self.sdf(point, scale) <= 0.0
+    }
+
+    pub fn velocity_at_point(&self, _point: Vec3) -> Vec3 {
+        self.velocity
     }
 
     pub fn vertices(&self, scale: Vec3) -> Vec<Vec3> {
