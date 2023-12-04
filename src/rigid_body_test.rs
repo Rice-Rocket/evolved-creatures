@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::quick::FilterQueryInspectorPlugin;
+use bevy_inspector_egui::quick::{FilterQueryInspectorPlugin, ResourceInspectorPlugin};
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_panorbit_camera::*;
 
@@ -24,7 +24,7 @@ pub fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(ScreenDiagnosticsPlugin::default())
         .add_plugins(ScreenFrameDiagnosticsPlugin)
-        // .add_plugins(ResourceInspectorPlugin::<SoftBodySimulationSettings>::default())
+        .add_plugins(ResourceInspectorPlugin::<RigidBodySimulationSettings>::default())
         .add_plugins(FilterQueryInspectorPlugin::<With<RigidBodyProperties>>::default())
 
         .run();
@@ -41,30 +41,48 @@ fn setup(
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(5.0, 3.0, 4.0).looking_at(Vec3::ZERO, Vec3::Y),
+            camera_3d: Camera3d {
+                clear_color: bevy::core_pipeline::clear_color::ClearColorConfig::Custom(Color::rgb(0.1, 0.1, 0.1)),
+                ..default()
+            },
             ..default()
         },
         PanOrbitCamera::default(),
     ));
 
-    commands.spawn(RigidBodyObject {
-        state: RigidBodyState {
-            position: Vec3::new(0.0, 4.0, 0.0),
-            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 1.0, 0.0),
-            angular_momentum: Vec3::new(0.0, 1.0, 0.0),
-            ..default()
-        },
-        properties: RigidBodyProperties {
-            scale: Vec3::new(1.0, 5.0, 1.0),
-            mass: 1.0,
-            ..default()
-        },
-        object: PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
-            material: materials.add(StandardMaterial::from(Color::rgb(1.0, 0.0, 0.0))),
-            ..default()
-        },
-        ..default()
-    });
+
+    for x in 0..1 {
+        for z in 0..1 {
+            for y in 0..2 {
+                commands.spawn(RigidBodyObject {
+                    state: RigidBodyState {
+                        position: Vec3::new(x as f32 * 1.1, 1.0 + y as f32 * 2.0, z as f32 * 1.1),
+                        orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
+                        ..default()
+                    },
+                    impulses: RigidBodyImpulseAccumulator {
+                        force: Vec3::ZERO,
+                        torque: Vec3::new(2.0, 0.0, 0.0),
+                    },
+                    properties: RigidBodyProperties {
+                        scale: Vec3::new(1.0, 1.0, 1.0),
+                        collision_point_density: UVec3::new(4, 4, 4),
+                        hardness: 1.0,
+                        roughness: 1.0,
+                        resilience: 0.2,
+                        mass: 1.0,
+                        ..default()
+                    },
+                    object: PbrBundle {
+                        mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
+                        material: materials.add(StandardMaterial::from(Color::rgb(1.0, 0.0, 0.0))),
+                        ..default()
+                    },
+                    ..default()
+                });
+            }
+        }
+    }
 
     commands.spawn(RigidBodyObject {
         state: RigidBodyState {
@@ -82,7 +100,7 @@ fn setup(
         },
         object: PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
-            material: materials.add(StandardMaterial::from(Color::rgb(1.0, 1.0, 1.0))),
+            material: materials.add(StandardMaterial::from(Color::rgb(0.1, 0.1, 0.1))),
             ..default()
         },
         ..default()

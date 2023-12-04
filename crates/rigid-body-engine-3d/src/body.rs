@@ -6,7 +6,16 @@ use bevy::prelude::*;
 pub struct RigidBodyObject {
     pub state: RigidBodyState,
     pub properties: RigidBodyProperties,
+    pub impulses: RigidBodyImpulseAccumulator,
     pub object: PbrBundle,
+}
+
+
+#[derive(Component, Clone, Reflect, Debug, Default)]
+#[reflect(Debug, Default)]
+pub struct RigidBodyImpulseAccumulator {
+    pub force: Vec3,
+    pub torque: Vec3,
 }
 
 
@@ -19,6 +28,8 @@ pub struct RigidBodyProperties {
     pub resilience: f32,
     pub roughness: f32,
     pub moments: Option<Vec3>,
+    pub collision_point_density: UVec3,
+    pub vertices: Option<Vec<Vec3>>,
     pub locked: bool,
 }
 
@@ -31,6 +42,8 @@ impl Default for RigidBodyProperties {
             roughness: 1.0,
             mass: 1.0,
             moments: None,
+            collision_point_density: UVec3::new(2, 2, 2),
+            vertices: None,
             locked: false,
         }
     }
@@ -41,6 +54,28 @@ pub(crate) fn initialize_bodies(
 ) {
     for mut props in bodies.iter_mut() {
         props.moments = Some(props.scale.normalize());
+
+        let mut vertices = Vec::new();
+        for (local_up, local_x, local_y) in [
+            (Vec3::Y, 0, 2), (Vec3::NEG_Y, 0, 2), (Vec3::X, 2, 1), 
+            (Vec3::NEG_X, 2, 1), (Vec3::Z, 1, 0), (Vec3::NEG_Z, 1, 0)
+        ] {
+            let axis_a = Vec3::new(local_up.y, local_up.z, local_up.x);
+            let axis_b = local_up.cross(axis_a);
+
+            for x in 0..props.collision_point_density[local_x] {
+                for y in 0..props.collision_point_density[local_y] {
+                    let uv = Vec2::new(x as f32, y as f32) / Vec2::new(props.collision_point_density[local_x] as f32 - 1.0, props.collision_point_density[local_y] as f32 - 1.0);
+                    let p = local_up * 0.5 + (uv.x - 0.5) * axis_a + (uv.y - 0.5) * axis_b;
+
+                    if !vertices.contains(&p) {
+                        vertices.push(p);
+                    }
+                }
+            }
+        }
+        vertices = vertices.iter().map(|x| *x * props.scale).collect();
+        props.vertices = Some(vertices);
     }
 }
 
@@ -64,6 +99,9 @@ impl RigidBodyState {
     pub fn localize(&self, point: Vec3) -> Vec3 {
         self.orientation.inverse() * (point - self.position)
     }
+    pub fn globalize(&self, point: Vec3) -> Vec3 {
+        (self.orientation * point) + self.position
+    }
 
     pub fn sdf(&self, point: Vec3, scale: Vec3) -> f32 {
         let p = self.localize(point);
@@ -85,15 +123,15 @@ impl RigidBodyState {
         let l = q.length();
 
         return s * (
-            if g > 0.0 { q / l }
+            if g > 0.0 { self.orientation.inverse() * (q / l) }
             else {
                 if w.x > w.y && w.x > w.z {
-                    Vec3::new(1.0, 0.0, 0.0)
+                    self.orientation.inverse() * Vec3::X
                 } else {
                     if w.y > w.z {
-                        Vec3::new(0.0, 1.0, 0.0)
+                        self.orientation.inverse() * Vec3::Y
                     } else {
-                        Vec3::new(0.0, 0.0, 1.0)
+                        self.orientation.inverse() * Vec3::Z
                     }
                 }
             }
@@ -101,7 +139,7 @@ impl RigidBodyState {
     }
 
     pub fn exterior_point(&self, point: Vec3, scale: Vec3) -> Vec3 {
-        point + self.sdf_gradient(point, scale) * -self.sdf(point, scale)
+        point - self.sdf_gradient(point, scale) * self.sdf(point, scale)
     }
 
     pub fn intersects(&self, point: Vec3, scale: Vec3) -> bool {
@@ -111,22 +149,6 @@ impl RigidBodyState {
     pub fn velocity_at_point(&self, point: Vec3) -> Vec3 {
         let arm = point - self.position;
         self.angular_velocity.cross(arm) + self.velocity
-    }
-
-    pub fn vertices(&self, scale: Vec3) -> Vec<Vec3> {
-        let h = scale / 2.0;
-        [
-            Vec3::new(-h.x, -h.y, -h.z),
-            Vec3::new(-h.x, -h.y, h.z),
-            Vec3::new(-h.x, h.y, -h.z),
-            Vec3::new(h.x, -h.y, -h.z),
-            Vec3::new(-h.x, h.y, h.z),
-            Vec3::new(h.x, h.y, -h.z),
-            Vec3::new(h.x, -h.y, h.z),
-            Vec3::new(h.x, h.y, h.z),
-        ].iter().map(|x| {
-            (self.orientation * *x) + self.position
-        }).collect()
     }
 
     pub fn axes(&self) -> [Vec3; 3] {
