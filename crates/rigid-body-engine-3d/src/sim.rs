@@ -23,7 +23,7 @@ pub struct RigidBodySimulationSettings {
 impl Default for RigidBodySimulationSettings {
     fn default() -> Self {
         Self {
-            num_substeps: 8,
+            num_substeps: 4,
             startup_time_buffer: 1.0,
             speed: 1.0,
             running: true,

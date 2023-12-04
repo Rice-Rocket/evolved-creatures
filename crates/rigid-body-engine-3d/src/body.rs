@@ -122,20 +122,20 @@ impl RigidBodyState {
         let q = w.max(Vec3::ZERO);
         let l = q.length();
 
-        return s * (
-            if g > 0.0 { self.orientation.inverse() * (q / l) }
+        return self.orientation * (s * (
+            if g > 0.0 { q / l }
             else {
                 if w.x > w.y && w.x > w.z {
-                    self.orientation.inverse() * Vec3::X
+                    Vec3::X
                 } else {
                     if w.y > w.z {
-                        self.orientation.inverse() * Vec3::Y
+                        Vec3::Y
                     } else {
-                        self.orientation.inverse() * Vec3::Z
+                        Vec3::Z
                     }
                 }
             }
-        );
+        ));
     }
 
     pub fn exterior_point(&self, point: Vec3, scale: Vec3) -> Vec3 {

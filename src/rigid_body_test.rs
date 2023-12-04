@@ -51,9 +51,14 @@ fn setup(
     ));
 
 
-    for x in 0..1 {
-        for z in 0..1 {
-            for y in 0..2 {
+    let tower_height = 10;
+    let tower_width = 3;
+    for x_pos in 0..tower_width {
+        for z_pos in 0..tower_width {
+            for y in 0..tower_height {
+                let uvw = Vec3::new(x_pos as f32 / tower_width as f32, y as f32 / tower_height as f32, z_pos as f32 / tower_width as f32);
+                let x = x_pos - tower_width / 2;
+                let z = z_pos - tower_width / 2;
                 commands.spawn(RigidBodyObject {
                     state: RigidBodyState {
                         position: Vec3::new(x as f32 * 1.1, 1.0 + y as f32 * 2.0, z as f32 * 1.1),
@@ -62,7 +67,7 @@ fn setup(
                     },
                     impulses: RigidBodyImpulseAccumulator {
                         force: Vec3::ZERO,
-                        torque: Vec3::new(2.0, 0.0, 0.0),
+                        torque: Vec3::new(2.0, 2.0, 0.0),
                     },
                     properties: RigidBodyProperties {
                         scale: Vec3::new(1.0, 1.0, 1.0),
@@ -75,7 +80,7 @@ fn setup(
                     },
                     object: PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
-                        material: materials.add(StandardMaterial::from(Color::rgb(1.0, 0.0, 0.0))),
+                        material: materials.add(StandardMaterial::from(Color::rgb(1.0, uvw.y.sin(), 0.0))),
                         ..default()
                     },
                     ..default()
