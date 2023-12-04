@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::quick::{ResourceInspectorPlugin, FilterQueryInspectorPlugin};
+use bevy_inspector_egui::quick::FilterQueryInspectorPlugin;
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_panorbit_camera::*;
 
@@ -49,10 +49,12 @@ fn setup(
     commands.spawn(RigidBodyObject {
         state: RigidBodyState {
             position: Vec3::new(0.0, 4.0, 0.0),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 1.0, 0.0),
+            angular_momentum: Vec3::new(0.0, 1.0, 0.0),
             ..default()
         },
         properties: RigidBodyProperties {
-            scale: Vec3::new(1.0, 2.0, 1.0),
+            scale: Vec3::new(1.0, 5.0, 1.0),
             mass: 1.0,
             ..default()
         },
@@ -70,12 +72,13 @@ fn setup(
             ..default()
         },
         properties: RigidBodyProperties {
-            scale: Vec3::new(10.0, 10.0, 10.0),
+            scale: Vec3::new(100.0, 10.0, 100.0),
             hardness: 1.0,
             roughness: 1.0,
             resilience: 0.2,
             mass: 1.0,
             locked: true,
+            ..default()
         },
         object: PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
@@ -88,7 +91,7 @@ fn setup(
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             color: Color::WHITE,
-            illuminance: 10000.0,
+            illuminance: 50000.0,
             shadows_enabled: false,
             ..default()
         },
@@ -98,8 +101,8 @@ fn setup(
 }
 
 
-fn update(
+// fn update(
 
-) {
+// ) {
 
-}
+// }

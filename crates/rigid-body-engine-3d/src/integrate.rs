@@ -10,7 +10,32 @@ pub(crate) fn update_positions(
     let dt = settings.sub_dt;
     for (mut state, props) in bodies.iter_mut() {
         if props.locked { continue };
-        state.position = state.position + state.velocity * dt + 0.5 * state.old_acceleration / props.mass * dt * dt;
+        let vh = 0.5 * state.acceleration * dt + state.velocity;
+        state.position = state.position + vh * dt;
+        state.velocity = vh;
+
+
+        let lh: Vec3 = 0.5 * state.torque * dt + state.angular_momentum;
+        
+        let r = Mat3::from_quat(state.orientation);
+        let mut rt = r.transpose();
+        let moments = props.moments.unwrap() * props.mass;
+
+        rt.x_axis /= moments.x;
+        rt.y_axis /= moments.y;
+        rt.z_axis /= moments.z;
+
+        let inverse_moment = r * rt;
+        let ang_vel = inverse_moment * lh;
+        let rdot = Mat3::from_cols(
+            Vec3::new(0.0, ang_vel.z, -ang_vel.y),
+            Vec3::new(-ang_vel.z, 0.0, ang_vel.x),
+            Vec3::new(ang_vel.y, -ang_vel.x, 0.0),
+        ) * r;
+
+        state.orientation = Quat::from_mat3(&(r + rdot * dt)).normalize();
+        state.angular_momentum = lh;
+        state.angular_velocity = ang_vel;
     }
 }
 
@@ -23,15 +48,15 @@ pub(crate) fn update_velocities(
         if props.locked {
             state.velocity = Vec3::ZERO;
             state.acceleration = Vec3::ZERO;
-            state.old_acceleration = Vec3::ZERO;
             state.force = Vec3::ZERO;
             state.torque = Vec3::ZERO;
             continue;
         }
 
         state.acceleration = state.force / props.mass;
-        state.velocity = state.velocity + 0.5 * (state.old_acceleration + state.acceleration) * dt;
-        state.old_acceleration = state.acceleration;
+        state.velocity = 0.5 * state.acceleration * dt + state.velocity;
+
+        state.angular_momentum = 0.5 * state.torque * dt + state.angular_momentum;
 
         state.force = Vec3::ZERO;
         state.torque = Vec3::ZERO;
@@ -44,5 +69,6 @@ pub(crate) fn update_object_transform(
     for (mut transform, state, props) in bodies.iter_mut() {
         transform.translation = state.position;
         transform.scale = props.scale;
+        transform.rotation = state.orientation;
     }
 }

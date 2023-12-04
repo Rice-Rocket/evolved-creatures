@@ -18,6 +18,7 @@ pub struct RigidBodyProperties {
     pub hardness: f32,
     pub resilience: f32,
     pub roughness: f32,
+    pub moments: Option<Vec3>,
     pub locked: bool,
 }
 
@@ -29,8 +30,17 @@ impl Default for RigidBodyProperties {
             resilience: 0.2,
             roughness: 1.0,
             mass: 1.0,
+            moments: None,
             locked: false,
         }
+    }
+}
+
+pub(crate) fn initialize_bodies(
+    mut bodies: Query<&mut RigidBodyProperties>
+) {
+    for mut props in bodies.iter_mut() {
+        props.moments = Some(props.scale.normalize());
     }
 }
 
@@ -39,17 +49,20 @@ impl Default for RigidBodyProperties {
 #[reflect(Debug, Default)]
 pub struct RigidBodyState {
     pub position: Vec3,
-    pub velocity: Vec3,
-    pub acceleration: Vec3,
-    pub old_acceleration: Vec3,
+    pub orientation: Quat,
 
+    pub velocity: Vec3,
+    pub angular_velocity: Vec3,
+    pub angular_momentum: Vec3,
+
+    pub acceleration: Vec3,
     pub force: Vec3,
     pub torque: Vec3,
 }
 
 impl RigidBodyState {
     pub fn localize(&self, point: Vec3) -> Vec3 {
-        /* rotation * */ (point - self.position)
+        self.orientation.inverse() * (point - self.position)
     }
 
     pub fn sdf(&self, point: Vec3, scale: Vec3) -> f32 {
@@ -95,8 +108,9 @@ impl RigidBodyState {
         self.sdf(point, scale) <= 0.0
     }
 
-    pub fn velocity_at_point(&self, _point: Vec3) -> Vec3 {
-        self.velocity
+    pub fn velocity_at_point(&self, point: Vec3) -> Vec3 {
+        let arm = point - self.position;
+        self.angular_velocity.cross(arm) + self.velocity
     }
 
     pub fn vertices(&self, scale: Vec3) -> Vec<Vec3> {
@@ -111,7 +125,7 @@ impl RigidBodyState {
             Vec3::new(h.x, -h.y, h.z),
             Vec3::new(h.x, h.y, h.z),
         ].iter().map(|x| {
-            *x + self.position // ! and also rotate
+            (self.orientation * *x) + self.position
         }).collect()
     }
 

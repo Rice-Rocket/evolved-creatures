@@ -16,7 +16,6 @@ pub(crate) fn apply_gravity(
 }
 
 pub(crate) fn apply_collisions(
-    mut gizmos: Gizmos,
     mut bodies: Query<(Entity, &mut RigidBodyState, &RigidBodyProperties)>,
 ) {
     let mut combinations = bodies.iter_combinations_mut();
