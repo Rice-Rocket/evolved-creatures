@@ -1,6 +1,6 @@
 pub use crate::{
     *,
     body::*,
-    force::*,
-    sim::*,
+    sim::RigidBodySimulationSettings,
+    joint::{*, universal::*},
 };

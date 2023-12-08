@@ -51,43 +51,127 @@ fn setup(
     ));
 
 
-    let tower_height = 10;
-    let tower_width = 3;
-    for x_pos in 0..tower_width {
-        for z_pos in 0..tower_width {
-            for y in 0..tower_height {
-                let uvw = Vec3::new(x_pos as f32 / tower_width as f32, y as f32 / tower_height as f32, z_pos as f32 / tower_width as f32);
-                let x = x_pos - tower_width / 2;
-                let z = z_pos - tower_width / 2;
-                commands.spawn(RigidBodyObject {
-                    state: RigidBodyState {
-                        position: Vec3::new(x as f32 * 1.1, 1.0 + y as f32 * 2.0, z as f32 * 1.1),
-                        orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
-                        ..default()
-                    },
-                    impulses: RigidBodyImpulseAccumulator {
-                        force: Vec3::ZERO,
-                        torque: Vec3::new(2.0, 2.0, 0.0),
-                    },
-                    properties: RigidBodyProperties {
-                        scale: Vec3::new(1.0, 1.0, 1.0),
-                        collision_point_density: UVec3::new(4, 4, 4),
-                        hardness: 1.0,
-                        roughness: 1.0,
-                        resilience: 0.2,
-                        mass: 1.0,
-                        ..default()
-                    },
-                    object: PbrBundle {
-                        mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
-                        material: materials.add(StandardMaterial::from(Color::rgb(1.0, uvw.y.sin(), 0.0))),
-                        ..default()
-                    },
-                    ..default()
-                });
-            }
-        }
-    }
+    let tower_height = 80;
+    let tower_width = 1;
+    // let tower_height = 9;
+    // let tower_width = 3;
+    // for x_pos in 0..tower_width {
+    //     for z_pos in 0..tower_width {
+    //         for y in 0..tower_height {
+    //             let uvw = Vec3::new(x_pos as f32 / tower_width as f32, y as f32 / tower_height as f32, z_pos as f32 / tower_width as f32);
+    //             let x = x_pos - tower_width / 2;
+    //             let z = z_pos - tower_width / 2;
+    //             commands.spawn(RigidBodyObject {
+    //                 state: RigidBodyState {
+    //                     position: Vec3::new(x as f32 * 1.1, 1.0 + y as f32 * 2.0, z as f32 * 1.1),
+    //                     orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
+    //                     ..default()
+    //                 },
+    //                 impulses: RigidBodyImpulseAccumulator {
+    //                     force: Vec3::ZERO,
+    //                     torque: Vec3::new(2.0, 2.0, -2.0),
+    //                 },
+    //                 properties: RigidBodyProperties {
+    //                     scale: Vec3::new(1.0, 1.0, 1.0),
+    //                     collision_point_density: UVec3::new(4, 4, 4),
+    //                     hardness: 1.0,
+    //                     roughness: 1.0,
+    //                     resilience: 0.5,
+    //                     mass: 1.0,
+    //                     ..default()
+    //                 },
+    //                 object: PbrBundle {
+    //                     mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
+    //                     material: materials.add(StandardMaterial {
+    //                         base_color: Color::rgb(1.0, uvw.y.sin(), 0.0),
+    //                         perceptual_roughness: 0.9,
+    //                         reflectance: 0.1,
+    //                         metallic: 0.0,
+    //                         ..default()
+    //                     }),
+    //                     ..default()
+    //                 },
+    //                 ..default()
+    //             });
+    //         }
+    //     }
+    // }
+
+    let rb1 = commands.spawn(RigidBodyObject {
+        state: RigidBodyState {
+            position: Vec3::new(0.0, 4.0, 0.0),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
+            ..default()
+        },
+        impulses: RigidBodyImpulseAccumulator {
+            force: Vec3::ZERO,
+            torque: Vec3::new(2.0, 2.0, -2.0),
+        },
+        properties: RigidBodyProperties {
+            scale: Vec3::new(1.0, 1.0, 1.0),
+            collision_point_density: UVec3::new(4, 4, 4),
+            hardness: 1.0,
+            roughness: 1.0,
+            resilience: 0.5,
+            mass: 1.0,
+            is_collider: false,
+            ..default()
+        },
+        object: PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
+            material: materials.add(StandardMaterial {
+                base_color: Color::rgb(1.0, 0.5, 0.0),
+                perceptual_roughness: 0.9,
+                reflectance: 0.1,
+                metallic: 0.0,
+                ..default()
+            }),
+            ..default()
+        },
+        ..default()
+    }).id();
+
+    let rb2 = commands.spawn(RigidBodyObject {
+        state: RigidBodyState {
+            position: Vec3::new(0.0, 6.0, 0.0),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
+            ..default()
+        },
+        impulses: RigidBodyImpulseAccumulator {
+            force: Vec3::ZERO,
+            torque: Vec3::new(0.0, 0.0, 0.0),
+        },
+        properties: RigidBodyProperties {
+            scale: Vec3::new(1.0, 1.0, 1.0),
+            collision_point_density: UVec3::new(4, 4, 4),
+            hardness: 1.0,
+            roughness: 1.0,
+            resilience: 0.5,
+            mass: 1.0,
+            is_collider: false,
+            ..default()
+        },
+        object: PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
+            material: materials.add(StandardMaterial {
+                base_color: Color::rgb(1.0, 0.0, 0.0),
+                perceptual_roughness: 0.9,
+                reflectance: 0.1,
+                metallic: 0.0,
+                ..default()
+            }),
+            ..default()
+        },
+        ..default()
+    }).id();
+    
+    commands.spawn(RBUniversalJoint {
+        body_1: rb1,
+        body_2: rb2,
+        position_1: Vec3::new(0.0, 1.0, 0.0),
+        position_2: Vec3::new(0.0, -1.0, 0.0),
+        ..default()
+    });
 
     commands.spawn(RigidBodyObject {
         state: RigidBodyState {
@@ -105,7 +189,13 @@ fn setup(
         },
         object: PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::new(1.0, 1.0, 1.0))),
-            material: materials.add(StandardMaterial::from(Color::rgb(0.1, 0.1, 0.1))),
+            material: materials.add(StandardMaterial {
+                base_color: Color::rgb(0.1, 0.1, 0.1),
+                perceptual_roughness: 0.9,
+                reflectance: 0.1,
+                metallic: 0.0,
+                ..default()
+            }),
             ..default()
         },
         ..default()
@@ -121,6 +211,11 @@ fn setup(
         transform: Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, 0.2, -1.0, 0.0)),
         ..default()
     });
+
+    commands.insert_resource(AmbientLight {
+        color: Color::rgb(1.0, 1.0, 1.0),
+        brightness: 0.5,
+    })
 }
 
 

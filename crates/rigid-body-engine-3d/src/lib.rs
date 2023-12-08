@@ -5,11 +5,13 @@ pub mod body;
 pub mod sim;
 pub mod integrate;
 pub mod force;
+pub mod joint;
 
 use body::*;
 use sim::*;
 use integrate::*;
 use force::*;
+use joint::{*, universal::*};
 
 pub struct RigidBodySimulationPlugin;
 
@@ -28,10 +30,14 @@ impl Plugin for RigidBodySimulationPlugin {
                 apply_gravity,
                 apply_collisions,
                 apply_accumulated_impulses,
+                apply_universal_joint_force,
             ).in_set(ApplyForcesSet).after(update_positions))
             .add_systems(Update, update_object_transform.after(run_physics_sim_schedule))
 
 
+            .register_type::<RBUniversalJoint>()
+            .register_type::<RigidBodySimulationSettings>()
+            .register_type::<RigidBodyImpulseAccumulator>()
             .register_type::<RigidBodyProperties>()
             .register_type::<RigidBodyState>();
     }

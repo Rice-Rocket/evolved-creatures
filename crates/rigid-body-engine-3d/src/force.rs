@@ -20,6 +20,7 @@ pub(crate) fn apply_collisions(
 ) {
     let mut combinations = bodies.iter_combinations_mut();
     while let Some([(mut state_1, props_1), (mut state_2, props_2)]) = combinations.fetch_next() {
+        if !props_1.is_collider && !props_2.is_collider { continue };
         apply_single_collision(state_1.as_mut(), props_1, state_2.as_mut(), props_2);
         apply_single_collision(state_2.as_mut(), props_2, state_1.as_mut(), props_1);
     }
@@ -55,15 +56,11 @@ fn apply_single_collision(
             let f = -(d * kc - b * vn + vt) * props_1.mass;
 
             if !props_1.locked {
-                let center = state_1.position;
-                state_1.force -= f;
-                state_1.torque += (p - center).cross(-f);
+                state_1.apply_force(p, -f);
             }
 
             if !props_2.locked {
-                let center = state_2.position;
-                state_2.force += f;
-                state_2.torque += (p - center).cross(f);
+                state_2.apply_force(p, f);
             }
         }
     }

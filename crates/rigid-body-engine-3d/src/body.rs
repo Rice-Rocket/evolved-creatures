@@ -31,6 +31,7 @@ pub struct RigidBodyProperties {
     pub collision_point_density: UVec3,
     pub vertices: Option<Vec<Vec3>>,
     pub locked: bool,
+    pub is_collider: bool,
 }
 
 impl Default for RigidBodyProperties {
@@ -45,6 +46,7 @@ impl Default for RigidBodyProperties {
             collision_point_density: UVec3::new(2, 2, 2),
             vertices: None,
             locked: false,
+            is_collider: true,
         }
     }
 }
@@ -151,11 +153,9 @@ impl RigidBodyState {
         self.angular_velocity.cross(arm) + self.velocity
     }
 
-    pub fn axes(&self) -> [Vec3; 3] {
-        [
-            /* self.rotation * */ Vec3::X,
-            Vec3::Y,
-            Vec3::Z,
-        ]
+    pub fn apply_force(&mut self, point: Vec3, f: Vec3) {
+        let arm = point - self.position;
+        self.force += f;
+        self.torque += arm.cross(f);
     }
 }
