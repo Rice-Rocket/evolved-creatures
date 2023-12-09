@@ -51,8 +51,8 @@ fn setup(
     ));
 
 
-    let tower_height = 80;
-    let tower_width = 1;
+    // let tower_height = 80;
+    // let tower_width = 1;
     // let tower_height = 9;
     // let tower_width = 3;
     // for x_pos in 0..tower_width {
@@ -165,13 +165,28 @@ fn setup(
         ..default()
     }).id();
     
-    commands.spawn(RBUniversalJoint {
-        body_1: rb1,
-        body_2: rb2,
-        position_1: Vec3::new(0.0, 1.0, 0.0),
-        position_2: Vec3::new(0.0, -1.0, 0.0),
-        ..default()
+    commands.spawn(RBJoint {
+        ty: RBRigidJoint {
+            connection_separation: 1.0,
+        },
+        props: RBJointProperties {
+            body_1: rb1,
+            body_2: rb2,
+            position_1: Vec3::new(0.0, 1.0, 0.0),
+            position_2: Vec3::new(0.0, -1.0, 0.0),
+            tangent: Vec3::new(1.0, 0.0, 0.0),
+            bitangent: Vec3::new(0.0, 0.0, 1.0),
+            ..default()
+        },
     });
+
+    // commands.spawn(RBUniversalJoint {
+    //     body_1: rb1,
+    //     body_2: rb2,
+    //     position_1: Vec3::new(0.0, 1.0, 0.0),
+    //     position_2: Vec3::new(0.0, -1.0, 0.0),
+    //     ..default()
+    // });
 
     commands.spawn(RigidBodyObject {
         state: RigidBodyState {

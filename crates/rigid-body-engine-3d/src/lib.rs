@@ -11,7 +11,7 @@ use body::*;
 use sim::*;
 use integrate::*;
 use force::*;
-use joint::{*, universal::*};
+use joint::{*, universal::*, rigid::*};
 
 pub struct RigidBodySimulationPlugin;
 
@@ -30,7 +30,9 @@ impl Plugin for RigidBodySimulationPlugin {
                 apply_gravity,
                 apply_collisions,
                 apply_accumulated_impulses,
-                apply_universal_joint_force,
+
+                apply_joint_connection_force::<RBUniversalJoint>,
+                apply_joint_connection_force::<RBRigidJoint>,
             ).in_set(ApplyForcesSet).after(update_positions))
             .add_systems(Update, update_object_transform.after(run_physics_sim_schedule))
 
