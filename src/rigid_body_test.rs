@@ -166,7 +166,7 @@ fn setup(
     }).id();
     
     commands.spawn(RBJoint {
-        ty: RBRigidJoint {
+        ty: RBRevoluteJoint {
             connection_separation: 1.0,
         },
         props: RBJointProperties {

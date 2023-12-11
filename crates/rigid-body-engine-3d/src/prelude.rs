@@ -2,5 +2,5 @@ pub use crate::{
     *,
     body::*,
     sim::RigidBodySimulationSettings,
-    joint::{*, universal::*, rigid::*},
+    joint::{*, spherical::*, rigid::*, revolute::*},
 };
