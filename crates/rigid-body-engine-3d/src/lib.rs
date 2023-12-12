@@ -11,7 +11,7 @@ use body::*;
 use sim::*;
 use integrate::*;
 use force::*;
-use joint::{constraint::*, spherical::*, rigid::*, revolute::*};
+use joint::{*, constraint::*, spherical::*, rigid::*, revolute::*};
 
 pub struct RigidBodySimulationPlugin;
 
@@ -34,11 +34,15 @@ impl Plugin for RigidBodySimulationPlugin {
                 apply_joint_connection_force::<RBSphericalJoint>,
                 apply_joint_connection_force::<RBRigidJoint>,
                 apply_joint_connection_force::<RBRevoluteJoint>,
+                apply_joint_limit_force,
             ).in_set(ApplyForcesSet).after(update_positions))
             .add_systems(Update, update_object_transform.after(run_physics_sim_schedule))
 
 
             .register_type::<RBSphericalJoint>()
+            .register_type::<RBRigidJoint>()
+            .register_type::<RBRevoluteJoint>()
+            .register_type::<RBJointProperties>()
             .register_type::<RigidBodySimulationSettings>()
             .register_type::<RigidBodyImpulseAccumulator>()
             .register_type::<RigidBodyProperties>()

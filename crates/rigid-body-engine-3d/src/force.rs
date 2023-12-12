@@ -71,8 +71,10 @@ pub(crate) fn apply_accumulated_impulses(
     settings: Res<RigidBodySimulationSettings>,
 ) {
     for (mut state, mut impulses) in bodies.iter_mut() {
-        state.force += impulses.force / settings.sub_dt;
-        state.torque += impulses.torque / settings.sub_dt;
+        let force = state.globalize_bivec(impulses.force);
+        let torque = state.globalize_bivec(impulses.torque);
+        state.force += force / settings.sub_dt;
+        state.torque += torque / settings.sub_dt;
 
         impulses.force = Vec3::ZERO;
         impulses.torque = Vec3::ZERO;

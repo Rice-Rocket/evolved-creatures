@@ -20,8 +20,12 @@ pub struct RBJointProperties {
     pub stiffness: f32,
     pub damping: f32,
     pub friction: f32,
+    pub limit_stiffness: f32,
+    pub limit_damping: f32,
+    pub limit_friction: f32,
     pub tangent: Vec3,
     pub bitangent: Vec3,
+    pub joint_limits: Vec3,
 }
 
 impl Default for RBJointProperties {
@@ -34,8 +38,12 @@ impl Default for RBJointProperties {
             stiffness: 1.0,
             damping: 0.2,
             friction: 1.0,
+            limit_stiffness: 1.0,
+            limit_damping: 0.0,
+            limit_friction: 1.0,
             tangent: Vec3::new(1.0, 0.0, 0.0),
             bitangent: Vec3::new(0.0, 0.0, 1.0),
+            joint_limits: Vec3::splat(std::f32::consts::PI),
         }
     }
 }

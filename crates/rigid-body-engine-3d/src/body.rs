@@ -29,9 +29,9 @@ pub struct RigidBodyProperties {
     pub roughness: f32,
     pub moments: Option<Vec3>,
     pub collision_point_density: UVec3,
-    pub vertices: Option<Vec<Vec3>>,
     pub locked: bool,
     pub is_collider: bool,
+    pub vertices: Option<Vec<Vec3>>,
 }
 
 impl Default for RigidBodyProperties {
@@ -103,6 +103,13 @@ impl RigidBodyState {
     }
     pub fn globalize(&self, point: Vec3) -> Vec3 {
         (self.orientation * point) + self.position
+    }
+
+    pub fn localize_bivec(&self, dir: Vec3) -> Vec3 {
+        self.orientation.inverse() * dir
+    }
+    pub fn globalize_bivec(&self, dir: Vec3) -> Vec3 {
+        self.orientation * dir
     }
 
     pub fn sdf(&self, point: Vec3, scale: Vec3) -> f32 {

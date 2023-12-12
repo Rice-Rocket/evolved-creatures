@@ -26,6 +26,7 @@ pub fn main() {
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ResourceInspectorPlugin::<RigidBodySimulationSettings>::default())
         .add_plugins(FilterQueryInspectorPlugin::<With<RigidBodyProperties>>::default())
+        .add_plugins(FilterQueryInspectorPlugin::<With<RBJointProperties>>::default())
 
         .run();
 }
@@ -166,9 +167,10 @@ fn setup(
     }).id();
     
     commands.spawn(RBJoint {
-        ty: RBRevoluteJoint {
-            connection_separation: 1.0,
-        },
+        ty: RBSphericalJoint,
+        // ty: RBRevoluteJoint {
+        //     connection_separation: 1.0,
+        // },
         props: RBJointProperties {
             body_1: rb1,
             body_2: rb2,
@@ -176,6 +178,7 @@ fn setup(
             position_2: Vec3::new(0.0, -1.0, 0.0),
             tangent: Vec3::new(1.0, 0.0, 0.0),
             bitangent: Vec3::new(0.0, 0.0, 1.0),
+            joint_limits: Vec3::new(1.0, std::f32::consts::PI, 1.0),
             ..default()
         },
     });
