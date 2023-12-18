@@ -7,7 +7,12 @@ pub mod revolute;
 
 
 pub trait RBJointType {
+    /// The points at which the two bodies should be connected by a zero length spring. 
     fn connection_points(&self, props: &RBJointProperties) -> Vec<(Vec3, Vec3)>;
+    /// The cosines of the angles at which limits should be placed in all three degrees of rotational freedom. 
+    /// Equivalent to the cosine of the `joint_limits` in `RBJointProperties` but is a constant of the joint type
+    /// instead of a variable in the standard properties. 
+    fn locked_limits(&self) -> Vec3;
 }
 
 #[derive(Component, Debug, Reflect)]
@@ -25,7 +30,17 @@ pub struct RBJointProperties {
     pub limit_friction: f32,
     pub tangent: Vec3,
     pub bitangent: Vec3,
-    pub joint_limits: Vec3,
+    /// Determines the minimum bounds of rotation in each degree of freedom. 
+    /// 
+    /// `x`: bend.   
+    /// `y`: twist.   
+    pub min_joint_limits: Vec2,
+    /// Determines the maximum bounds of rotation in each degree of freedom. 
+    /// 
+    /// `x`: 0 - no bend; 1 - full bend
+    /// 
+    /// `y`: twist
+    pub max_joint_limits: Vec2,
 }
 
 impl Default for RBJointProperties {
@@ -43,7 +58,8 @@ impl Default for RBJointProperties {
             limit_friction: 1.0,
             tangent: Vec3::new(1.0, 0.0, 0.0),
             bitangent: Vec3::new(0.0, 0.0, 1.0),
-            joint_limits: Vec3::splat(std::f32::consts::PI),
+            min_joint_limits: Vec2::splat(0.0),
+            max_joint_limits: Vec2::splat(1.0),
         }
     }
 }

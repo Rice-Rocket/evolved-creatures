@@ -1,7 +1,10 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_editor_pls::editor::Editor;
 use bevy_inspector_egui::quick::{FilterQueryInspectorPlugin, ResourceInspectorPlugin};
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_panorbit_camera::*;
+#[allow(unused_imports)]
+use bevy_editor_pls::{prelude::*, controls::{EditorControls, Action, Binding}};
 
 
 use rigid_body_engine_3d::prelude::*;
@@ -24,11 +27,19 @@ pub fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(ScreenDiagnosticsPlugin::default())
         .add_plugins(ScreenFrameDiagnosticsPlugin)
-        .add_plugins(ResourceInspectorPlugin::<RigidBodySimulationSettings>::default())
-        .add_plugins(FilterQueryInspectorPlugin::<With<RigidBodyProperties>>::default())
-        .add_plugins(FilterQueryInspectorPlugin::<With<RBJointProperties>>::default())
+        .add_plugins(EditorPlugin::new())
+        // .add_plugins(ResourceInspectorPlugin::<RigidBodySimulationSettings>::default())
+        // .add_plugins(FilterQueryInspectorPlugin::<With<RigidBodyProperties>>::default())
+        // .add_plugins(FilterQueryInspectorPlugin::<With<RBJointProperties>>::default())
 
         .run();
+}
+
+fn setup_editor(
+    mut commands: Commands,
+    mut editor: ResMut<Editor>,
+) {
+    // bevy_editor_pls::controls::editor_controls_system()
 }
 
 fn setup(
@@ -98,7 +109,7 @@ fn setup(
     //     }
     // }
 
-    let rb1 = commands.spawn(RigidBodyObject {
+    let rb1 = commands.spawn((RigidBodyObject {
         state: RigidBodyState {
             position: Vec3::new(0.0, 4.0, 0.0),
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
@@ -130,9 +141,9 @@ fn setup(
             ..default()
         },
         ..default()
-    }).id();
+    }, Name::new("Orange RB"))).id();
 
-    let rb2 = commands.spawn(RigidBodyObject {
+    let rb2 = commands.spawn((RigidBodyObject {
         state: RigidBodyState {
             position: Vec3::new(0.0, 6.0, 0.0),
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
@@ -164,7 +175,7 @@ fn setup(
             ..default()
         },
         ..default()
-    }).id();
+    }, Name::new("Red RB"))).id();
     
     commands.spawn(RBJoint {
         ty: RBSphericalJoint,
@@ -178,7 +189,8 @@ fn setup(
             position_2: Vec3::new(0.0, -1.0, 0.0),
             tangent: Vec3::new(1.0, 0.0, 0.0),
             bitangent: Vec3::new(0.0, 0.0, 1.0),
-            joint_limits: Vec3::new(1.0, std::f32::consts::PI, 1.0),
+            min_joint_limits: Vec2::new(1.0, std::f32::consts::PI),
+            max_joint_limits: Vec2::new(0.3, std::f32::consts::PI),
             ..default()
         },
     });
@@ -191,7 +203,7 @@ fn setup(
     //     ..default()
     // });
 
-    commands.spawn(RigidBodyObject {
+    commands.spawn((RigidBodyObject {
         state: RigidBodyState {
             position: Vec3::new(0.0, -5.0, 0.0),
             ..default()
@@ -217,7 +229,7 @@ fn setup(
             ..default()
         },
         ..default()
-    });
+    }, Name::new("Ground")));
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
