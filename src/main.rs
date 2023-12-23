@@ -1,5 +1,5 @@
-pub mod soft_body_test;
 pub mod rigid_body_test;
+pub mod editor;
 
 
 fn main() {

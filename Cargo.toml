@@ -7,19 +7,32 @@ edition = "2021"
 
 [workspace]
 members = [
-    "crates/*",
+    "crates/rigid-body-engine-3d",
+    "crates/custom_bevy_editor/crates/bevy_editor_pls",
+    "crates/custom_bevy_editor/crates/bevy_editor_pls_core",
+    "crates/custom_bevy_editor/crates/bevy_editor_pls_default_windows",
 ]
 
 [dependencies]
-soft-body-engine-2d = { path = "crates/soft-body-engine-2d" }
+# soft-body-engine-2d = { path = "crates/soft-body-engine-2d" }
 rigid-body-engine-3d = { path = "crates/rigid-body-engine-3d" }
+bevy_editor_pls = { version = "0.6.0", path = "crates/custom_bevy_editor/crates/bevy_editor_pls" }
 
 bevy = "0.12.0"
 bevy-inspector-egui = "0.21.0"
 bevy_egui = "0.24.0"
 bevy_screen_diagnostics = "0.4"
 bevy_panorbit_camera = "0.9.2"
-bevy_editor_pls = "0.6"
+bevy_easings = "0.12"
+
+[workspace.dependencies]
+bevy_editor_pls = { version = "0.6.0", path = "crates/custom_bevy_editor/crates/bevy_editor_pls" }
+bevy_editor_pls_core = { version = "0.6.0", path = "crates/custom_bevy_editor/crates/bevy_editor_pls_core" }
+bevy_editor_pls_default_windows = { version = "0.6.0", path = "crates/custom_bevy_editor/crates/bevy_editor_pls_default_windows" }
+
+bevy-inspector-egui = "0.21.0"
+egui = "0.23"
+egui-gizmo = "0.12"
 
 [profile.dev.package."*"]
 opt-level = 3

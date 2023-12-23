@@ -615,8 +615,6 @@ dependencies = [
 [[package]]
 name = "bevy_editor_pls"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "170e3ee3293f70be7fa1b82e8ffe52dcb190c68b2f0ef4847afe65626b417ad7"
 dependencies = [
  "bevy",
  "bevy_editor_pls_core",
@@ -628,8 +626,6 @@ dependencies = [
 [[package]]
 name = "bevy_editor_pls_core"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b9bab331de653d7d976a1fb0ab3ae8eff1dc821c5991c09bdbe945e70234839c"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
@@ -640,11 +636,10 @@ dependencies = [
 [[package]]
 name = "bevy_editor_pls_default_windows"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b833e3b3d5c69b92527e766b470b27cb4745406e2087be19be81b595cc48792c"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
+ "bevy_easings",
  "bevy_editor_pls_core",
  "bevy_mod_debugdump",
  "egui-gizmo",
@@ -1894,12 +1889,12 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy-inspector-egui",
+ "bevy_easings",
  "bevy_editor_pls",
  "bevy_egui 0.24.0",
  "bevy_panorbit_camera",
  "bevy_screen_diagnostics",
  "rigid-body-engine-3d",
- "soft-body-engine-2d",
 ]
 
 [[package]]
@@ -3485,13 +3480,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74212e6bbe9a4352329b2f68ba3130c15a3f26fe88ff22dbdc6cdd58fa85e99c"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "soft-body-engine-2d"
-version = "0.1.0"
-dependencies = [
- "bevy",
 ]
 
 [[package]]
