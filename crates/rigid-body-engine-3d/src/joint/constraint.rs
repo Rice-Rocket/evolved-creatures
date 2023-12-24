@@ -69,12 +69,11 @@ pub(crate) fn apply_joint_connection_force<T: RBJointType + Component>(
 }
 
 
-pub(crate) fn apply_joint_limit_force<T: RBJointType + Component>(
-    mut gizmos: Gizmos,
+pub(crate) fn apply_joint_limit_force_bend<T: RBJointType + Component>(
     joints: Query<(&T, &RBJointProperties), Without<RigidBodyState>>,
     mut bodies: Query<(&mut RigidBodyState, &RigidBodyProperties), Without<T>>,
 ) {
-    for (_joint_type, joint) in joints.iter() {
+    for (joint_type, joint) in joints.iter() {
         let (f1, f2);
         let (locked_1, locked_2);
         let (p, reflected_p);
@@ -99,7 +98,7 @@ pub(crate) fn apply_joint_limit_force<T: RBJointType + Component>(
             let on_far_edge = state_1.position + (p - state_1.position).dot(rb1_to_rb2) * rb1_to_rb2;
             let height = (p - on_far_edge).length();
 
-            let cos_max = (std::f32::consts::FRAC_PI_2 - joint.max_joint_limits.x * 0.5 * std::f32::consts::PI).cos();
+            let cos_max = (std::f32::consts::FRAC_PI_2 - joint.joint_limits.x.min(joint_type.locked_limits().x) * 0.5 * std::f32::consts::PI).cos();
             let max_ref_height = 0.5 * cos_max * to_rb1_dist + 0.5 * cos_max * to_rb2_dist;
 
             if max_ref_height > height {
@@ -108,9 +107,9 @@ pub(crate) fn apply_joint_limit_force<T: RBJointType + Component>(
 
             reflected_p = on_far_edge;
 
-            gizmos.line(state_1.position, state_2.position, Color::PURPLE);
-            gizmos.line(state_1.position, p, Color::TEAL);
-            gizmos.line(state_2.position, p, Color::TEAL);
+            // gizmos.line(state_1.position, state_2.position, Color::PURPLE);
+            // gizmos.line(state_1.position, p, Color::TEAL);
+            // gizmos.line(state_2.position, p, Color::TEAL);
 
             let d = reflected_p - p;
             let dist2 = d.length_squared();

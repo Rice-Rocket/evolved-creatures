@@ -15,7 +15,7 @@ pub(crate) fn update_positions(
         state.velocity = vh;
 
 
-        let lh: Vec3 = 0.5 * state.torque * dt + state.angular_momentum;
+        let lh = 0.5 * state.torque * dt + state.angular_momentum;
         
         let r = Mat3::from_quat(state.orientation);
         let mut rt = r.transpose();

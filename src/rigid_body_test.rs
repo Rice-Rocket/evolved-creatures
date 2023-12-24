@@ -178,8 +178,7 @@ fn joint_scene(
             position_2: Vec3::new(0.0, -1.0, 0.0),
             tangent: Vec3::new(1.0, 0.0, 0.0),
             bitangent: Vec3::new(0.0, 0.0, 1.0),
-            min_joint_limits: Vec2::new(1.0, std::f32::consts::PI),
-            max_joint_limits: Vec2::new(0.3, std::f32::consts::PI),
+            joint_limits: Vec2::new(0.3, std::f32::consts::PI),
             ..default()
         },
     }, Name::new("Joint")));
