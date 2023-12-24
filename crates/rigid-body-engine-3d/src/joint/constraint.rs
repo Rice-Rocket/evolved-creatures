@@ -154,3 +154,87 @@ pub(crate) fn apply_joint_limit_force_bend<T: RBJointType + Component>(
         }
     }
 }
+
+
+pub(crate) fn apply_joint_limit_force_twist<T: RBJointType + Component> (
+    mut gizmos: Gizmos,
+    joints: Query<(&T, &RBJointProperties), Without<RigidBodyState>>,
+    mut bodies: Query<(&mut RigidBodyState, &RigidBodyProperties), Without<T>>,
+) {
+    for (joint_type, joint) in joints.iter() {
+        let (f1, f2);
+        let (locked_1, locked_2);
+        let (center, tan1, tan2);
+        {
+            let (state_1, props_1) = bodies.get(joint.body_1).unwrap();
+            let (state_2, props_2) = bodies.get(joint.body_2).unwrap();
+
+            locked_1 = props_1.locked;
+            locked_2 = props_2.locked;
+
+            let p1 = state_1.globalize(joint.position_1 * props_1.scale * 0.5);
+            let p2 = state_2.globalize(joint.position_2 * props_2.scale * 0.5);
+            tan1 = state_1.globalize_bivec(Vec3::X);
+            tan2 = state_2.globalize_bivec(Vec3::X);
+            center = 0.5 * p1 + 0.5 * p2;
+
+            let joint_plane_normal = (state_2.position - state_1.position).normalize();
+            let tan1_proj = (tan1 - tan1.dot(joint_plane_normal) * joint_plane_normal).normalize();
+            let tan2_proj = (tan2 - tan2.dot(joint_plane_normal) * joint_plane_normal).normalize();
+
+            let point1 = center + tan1_proj;
+            let point2 = center + tan2_proj;
+            let d = point2 - point1;
+
+            let sin_max = (joint.joint_limits.y.min(joint_type.locked_limits().y) * std::f32::consts::PI * 0.5).sin();
+            let max_ref_far_edge = 2.0 * sin_max;
+            let dist2 = d.length_squared();
+            
+            if max_ref_far_edge * max_ref_far_edge > dist2 {
+                continue
+            }
+
+            gizmos.ray(center, tan1_proj, Color::PURPLE);
+            gizmos.ray(center, tan2_proj, Color::PURPLE);
+            gizmos.line(point1, point2, Color::TEAL);
+
+            if dist2 == 0.0 { continue };
+
+            let dist = dist2.sqrt();
+            let dnorm = dist - max_ref_far_edge;
+
+            let kt = joint.limit_friction * 4.0;
+            let kn = (1.0 - joint.limit_damping).powi(10);
+            let kc = joint.limit_stiffness * 1000.0;
+
+            let v = state_1.velocity_at_point(point1);
+            let vvel = state_1.velocity_at_point(point2);
+            let vdiff = v - vvel;
+            let n = d / dist;
+            let vn = vdiff.dot(n) * n;
+            let vt = (vn * n - vdiff) * kt;
+            let b = (kc * props_1.mass).sqrt() * 2.0 * kn;
+            f1 = (n * dnorm * kc - b * vn + vt) * props_1.mass;
+
+            let v = state_2.velocity_at_point(point2);
+            let vvel = state_2.velocity_at_point(point1);
+            let vdiff = v - vvel;
+            let vn = vdiff.dot(-n) * -n;
+            let vt = (vn * -n - vdiff) * kt;
+            let b = (kc * props_2.mass).sqrt() * 2.0 * kn;
+            f2 = (-n * dnorm * kc - b * vn + vt) * props_2.mass;
+        }
+
+        if !locked_1 {
+            let (mut state_1, _) = bodies.get_mut(joint.body_1).unwrap();
+            state_1.torque += tan1.cross(f1);
+            state_1.torque += tan1.cross(-f2);
+        }
+        
+        if !locked_2 {
+            let (mut state_2, _) = bodies.get_mut(joint.body_2).unwrap();
+            state_2.torque += tan2.cross(f2);
+            state_2.torque += tan2.cross(-f1);
+        }
+    }
+}

@@ -38,6 +38,10 @@ impl Plugin for RigidBodySimulationPlugin {
                 apply_joint_limit_force_bend::<RBSphericalJoint>,
                 apply_joint_limit_force_bend::<RBRigidJoint>,
                 apply_joint_limit_force_bend::<RBRevoluteJoint>,
+
+                apply_joint_limit_force_twist::<RBSphericalJoint>,
+                apply_joint_limit_force_twist::<RBRigidJoint>,
+                apply_joint_limit_force_twist::<RBRevoluteJoint>,
             ).in_set(ApplyForcesSet).after(update_positions))
             .add_systems(Update, update_object_transform.after(run_physics_sim_schedule))
 

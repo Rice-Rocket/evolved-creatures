@@ -103,13 +103,13 @@ fn joint_scene(
 ) {
     let rb1 = commands.spawn((RigidBodyObject {
         state: RigidBodyState {
-            position: Vec3::new(0.0, 4.0, 0.0),
+            position: Vec3::new(0.0, 0.5, 0.0),
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
             ..default()
         },
         impulses: RigidBodyImpulseAccumulator {
             force: Vec3::ZERO,
-            torque: Vec3::new(2.0, 2.0, -2.0),
+            torque: Vec3::ZERO,
         },
         properties: RigidBodyProperties {
             scale: Vec3::new(1.0, 1.0, 1.0),
@@ -119,6 +119,7 @@ fn joint_scene(
             resilience: 0.5,
             mass: 1.0,
             is_collider: false,
+            // locked: true,
             ..default()
         },
         object: PbrBundle {
@@ -137,13 +138,13 @@ fn joint_scene(
 
     let rb2 = commands.spawn((RigidBodyObject {
         state: RigidBodyState {
-            position: Vec3::new(0.0, 6.0, 0.0),
+            position: Vec3::new(0.0, 1.5, 0.0),
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
             ..default()
         },
         impulses: RigidBodyImpulseAccumulator {
             force: Vec3::ZERO,
-            torque: Vec3::new(0.0, 0.0, 0.0),
+            torque: Vec3::ZERO,
         },
         properties: RigidBodyProperties {
             scale: Vec3::new(1.0, 1.0, 1.0),
@@ -178,7 +179,7 @@ fn joint_scene(
             position_2: Vec3::new(0.0, -1.0, 0.0),
             tangent: Vec3::new(1.0, 0.0, 0.0),
             bitangent: Vec3::new(0.0, 0.0, 1.0),
-            joint_limits: Vec2::new(0.3, std::f32::consts::PI),
+            joint_limits: Vec2::new(0.0, 0.5),
             ..default()
         },
     }, Name::new("Joint")));

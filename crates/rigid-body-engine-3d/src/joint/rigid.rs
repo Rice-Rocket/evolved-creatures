@@ -32,7 +32,7 @@ impl RBJointType for RBRigidJoint {
         ]
     }
     fn locked_limits(&self) -> Vec2 {
-        Vec2::splat(1.0)
+        Vec2::new(1.0, 1.0)
     }
 }
 

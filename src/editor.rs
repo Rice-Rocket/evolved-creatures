@@ -58,10 +58,16 @@ fn debug_ui_options(
     ui: &mut egui::Ui,
 ) {
     egui::Grid::new("physics settings").show(ui, |ui| {
+        let keys = world.resource::<Input<KeyCode>>().clone();
         let mut sim_settings = world.resource_mut::<RigidBodySimulationSettings>();
 
         ui.label("Pause");
-        if ui.checkbox(&mut state.pause_time, "").changed() {
+        let mut changed = false;
+        if keys.just_pressed(KeyCode::P) {
+            state.pause_time = !state.pause_time;
+            changed = true;
+        }
+        if ui.checkbox(&mut state.pause_time, "").changed() || changed {
             if state.pause_time {
                 sim_settings.pause();
             } else {
