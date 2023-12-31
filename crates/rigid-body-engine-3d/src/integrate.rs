@@ -16,16 +16,9 @@ pub(crate) fn update_positions(
 
 
         let lh = 0.5 * state.torque * dt + state.angular_momentum;
-        
         let r = Mat3::from_quat(state.orientation);
-        let mut rt = r.transpose();
-        let moments = props.moments.unwrap() * props.mass;
 
-        rt.x_axis /= moments.x;
-        rt.y_axis /= moments.y;
-        rt.z_axis /= moments.z;
-
-        let inverse_moment = r * rt;
+        let inverse_moment = props.inverse_moment_mat(r);
         let ang_vel = inverse_moment * lh;
         let rdot = Mat3::from_cols(
             Vec3::new(0.0, ang_vel.z, -ang_vel.y),

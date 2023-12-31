@@ -51,6 +51,23 @@ impl Default for RigidBodyProperties {
     }
 }
 
+impl RigidBodyProperties {
+    pub(crate) fn inverse_moment_mat(&self, orientation: Mat3) -> Mat3 {
+        let mut rt = orientation.transpose();
+        let moments = self.moments.unwrap() * self.mass;
+
+        rt.x_axis /= moments.x;
+        rt.y_axis /= moments.y;
+        rt.z_axis /= moments.z;
+
+        orientation * rt
+    }
+    pub(crate) fn inverse_moment_quat(&self, orientation: Quat) -> Mat3 {
+        let r = Mat3::from_quat(orientation);
+        self.inverse_moment_mat(r)
+    }
+}
+
 pub(crate) fn initialize_bodies(
     mut bodies: Query<&mut RigidBodyProperties>
 ) {

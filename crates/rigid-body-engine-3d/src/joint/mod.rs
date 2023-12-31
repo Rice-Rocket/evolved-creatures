@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 
+pub mod constraint;
 pub mod spherical;
 pub mod rigid;
-pub mod constraint;
 pub mod revolute;
 
 
@@ -69,7 +69,7 @@ impl RBJointProperties {
 }
 
 
-#[derive(Bundle)]
+#[derive(Bundle, Default)]
 pub struct RBJoint<T: RBJointType + 'static + std::marker::Send + std::marker::Sync + Component> {
     pub ty: T,
     pub props: RBJointProperties,
