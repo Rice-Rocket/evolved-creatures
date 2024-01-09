@@ -51,6 +51,7 @@ impl Default for RigidBodyProperties {
     }
 }
 
+#[allow(dead_code)]
 impl RigidBodyProperties {
     pub(crate) fn inverse_moment_mat(&self, orientation: Mat3) -> Mat3 {
         let mut rt = orientation.transpose();
