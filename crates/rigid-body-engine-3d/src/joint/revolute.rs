@@ -28,8 +28,8 @@ impl RBJointType for RBRevoluteJoint {
             (props.position_1 + offsets[1], props.position_2 + offsets[1]),
         ]
     }
-    fn locked_limits(&self) -> Vec2 {
-        Vec2::new(1.0, 1.0)
+    fn locked_limits(&self) -> Vec3 {
+        Vec3::new(1.0, 1.0, 1.0)
     }
 }
 

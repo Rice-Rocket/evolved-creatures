@@ -11,7 +11,7 @@ pub trait RBJointType {
     fn connection_points(&self, props: &RBJointProperties) -> Vec<(Vec3, Vec3)>;
     /// Equivalent to the `joint_limits` in `RBJointProperties` but is a constant of the joint type
     /// instead of a variable in the standard properties. 
-    fn locked_limits(&self) -> Vec2;
+    fn locked_limits(&self) -> Vec3;
 }
 
 #[derive(Component, Debug, Reflect)]
@@ -30,11 +30,12 @@ pub struct RBJointProperties {
     pub tangent: Vec3,
     pub bitangent: Vec3,
     /// Determines the maximum bounds of rotation in each degree of freedom. 
+    /// No bend means 0, full bend means 1.
     /// 
-    /// `x`: 0 - no bend; 1 - full bend
-    /// 
-    /// `y`: twist
-    pub joint_limits: Vec2,
+    /// `x`: bend
+    /// `y`: bend
+    /// `z`: twist
+    pub joint_limits: Vec3,
 }
 
 impl Default for RBJointProperties {
@@ -52,7 +53,7 @@ impl Default for RBJointProperties {
             limit_friction: 1.0,
             tangent: Vec3::new(1.0, 0.0, 0.0),
             bitangent: Vec3::new(0.0, 0.0, 1.0),
-            joint_limits: Vec2::splat(1.0),
+            joint_limits: Vec3::splat(1.0),
         }
     }
 }
