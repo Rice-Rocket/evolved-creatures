@@ -1,3 +1,4 @@
 /target
 notes.txt
-/tests
+*.DS_Store
+/.vscode
