@@ -13,6 +13,8 @@ bevy_panorbit_camera.workspace = true
 bevy_screen_diagnostics.workspace = true
 bevy_editor_pls.workspace = true
 
+bitflags = "2.4.2"
+
 [[test]]
 name = "apptests"
 path = "src/test.rs"

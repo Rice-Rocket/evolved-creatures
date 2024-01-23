@@ -69,13 +69,22 @@ fn debug_ui_options(
         if ui.checkbox(&mut state.pause_time, "").changed() || changed {
             if state.pause_time {
                 sim_config.physics_pipeline_active = false;
-                // sim_config.timestep_mode = TimestepMode::Fixed { dt: 0.0, substeps: 1 };
             } else {
                 sim_config.physics_pipeline_active = true;
-                // sim_config.timestep_mode = TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 4 };
             }
         }
         ui.end_row();
+
+        ui.label("Substeps");
+        if let TimestepMode::Variable{ max_dt, time_scale, mut substeps } = sim_config.timestep_mode {
+            if ui.add(egui::DragValue::new(&mut substeps)).changed() {
+                sim_config.timestep_mode = TimestepMode::Variable {
+                    max_dt, 
+                    time_scale,
+                    substeps,
+                };
+            }
+        }
 
         // let sim_context = world.resource_mut::<RapierContext>();
 
@@ -105,8 +114,8 @@ fn debug_ui_options(
         // }
         // ui.end_row();
 
-        if ui.button("Step").clicked() {
-        }
+        // if ui.button("Step").clicked() {
+        // }
     });
 }
 

@@ -4,4 +4,6 @@
 
 ## Features
 
-For now, I will be using the [Rapier physics engine](https://rapier.rs/). 
+### Physics
+
+For now, I will be using the [Rapier physics engine](https://rapier.rs/).

@@ -7,7 +7,7 @@ use bevy_editor_pls::prelude::*;
 pub mod creature_builder;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{globals::CreatureBuilderGlobals, CreatureBuilderPlugin, limb::CreatureLimbBundle};
+use creature_builder::{CreatureBuilderPlugin, limb::CreatureLimbBundle, joint::CreatureJointBuilder, sensor::{ContactFilter, ContactFilterTag}, config::{CreatureBuilderConfig, ActiveCollisionTypes}};
 
 
 pub fn main() {
@@ -23,11 +23,21 @@ pub fn main() {
         .add_systems(Startup, (setup, joint_scene))
         .add_plugins(CreatureBuilderPlugin)
 
-        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(ScreenDiagnosticsPlugin::default())
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(RapierPhysicsEditorPlugin)
+
+        .insert_resource(RapierConfiguration {
+            timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
+            // timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
+            ..default()
+        })
+
+        .insert_resource(CreatureBuilderConfig {
+            collision_types: ActiveCollisionTypes::ALL,
+        })
 
         .run();
 }
@@ -38,25 +48,39 @@ fn joint_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn((
+    let red_id = commands.spawn((
         CreatureLimbBundle::new()
             .with_color(Color::rgb(0.8, 0.1, 0.1))
-            .with_groups(CreatureBuilderGlobals::MAIN_COLLISION_GROUP)
             .with_size(Vec3::splat(1.0))
             .with_transform(Transform::from_xyz(0.0, 2.0, 0.0))
             .finish(&mut meshes, &mut materials),
         Name::new("Red Body")
-    ));
+    )).id();
 
-    commands.spawn((
+    let mut blue = commands.spawn((
         CreatureLimbBundle::new()
             .with_color(Color::rgb(0.1, 0.1, 0.8))
-            .with_groups(CreatureBuilderGlobals::MAIN_COLLISION_GROUP)
             .with_size(Vec3::splat(1.0))
             .with_transform(Transform::from_xyz(0.0, 3.0, 0.0))
             .finish(&mut meshes, &mut materials),
         Name::new("Blue Body")
     ));
+
+    blue.insert(
+        CreatureJointBuilder::new()
+            .with_parent(red_id)
+            .with_generic_joint(
+                GenericJointBuilder::new(JointAxesMask::LIN_AXES)
+                    .limits(JointAxis::AngY, [-0.5, 0.5])
+                    .limits(JointAxis::AngX, [-0.001, 0.001])
+                    .limits(JointAxis::AngZ, [-0.001, 0.001])
+                    .local_anchor1(Vec3::new(0.0, 1.0, 0.0))
+                    .local_anchor2(Vec3::new(0.0, -1.0, 0.0))
+                    // .set_motor(JointAxis::AngY, 0.2, 0.5, 0.9, 0.3)
+                    .build()
+            )
+            .finish()
+    );
 }
 
 
@@ -84,13 +108,14 @@ fn setup(
         RigidBody::KinematicPositionBased,
         Velocity { linvel: Vec3::ZERO, angvel: Vec3::ZERO },
         GravityScale(1.0),
-        ExternalForce { force: Vec3::ZERO, torque: Vec3::ZERO },
+        ActiveEvents::COLLISION_EVENTS,
+        ActiveHooks::FILTER_CONTACT_PAIRS,
+        ContactFilterTag::GroundGroup,
 
         Collider::cuboid(50.0, 5.0, 50.0),
-        CreatureBuilderGlobals::GROUND_COLLISION_GROUP,
-        Friction { coefficient: 0.5, combine_rule: CoefficientCombineRule::Average },
-        Restitution { coefficient: 0.1, combine_rule: CoefficientCombineRule::Average },
-        ColliderMassProperties::Mass(1.0),
+        Friction { coefficient: 0.3, combine_rule: CoefficientCombineRule::Average },
+        Restitution { coefficient: 0.0, combine_rule: CoefficientCombineRule::Average },
+        ColliderMassProperties::Density(1.0),
 
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::new(100.0, 10.0, 100.0))),
