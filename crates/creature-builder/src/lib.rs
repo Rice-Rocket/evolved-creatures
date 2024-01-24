@@ -2,7 +2,7 @@ pub mod limb;
 pub mod joint;
 pub mod sensor;
 pub mod config;
-pub mod graph;
+pub mod builder;
 
 
 use bevy::prelude::*;
