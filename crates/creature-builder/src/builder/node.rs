@@ -84,7 +84,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 );
                 
                 match result.transforms.get_mut(&id) {
-                    Some(history) => { history.push(params.root_transform) },
+                    Some(history) => { history.push(params.root_transform.with_scale(self.placement.scale)) },
                     None => {
                         let mut history = Stack::new();
                         history.push(params.root_transform.with_scale(self.placement.scale));
@@ -105,6 +105,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
 }
 
 
+#[derive(Resource)]
 pub struct BuildResult {
     pub limb_build_queue: Queue<CreatureLimbBundle>,
     pub joint_build_queue: Queue<CreatureJointBuilder>,

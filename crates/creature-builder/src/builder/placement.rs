@@ -55,8 +55,8 @@ impl LimbRelativePlacement {
         let attach_point = parent.scale * (self.attach_face.direction() + self.attach_face.on_tangent_plane(self.attach_position));
 
         let to_body_mid = self.orientation * self.attach_face.direction();
-        let translation = attach_point + to_body_mid * self.scale.dot(self.attach_face.direction());
-
+        let translation = attach_point + to_body_mid * (parent.scale * self.scale).dot(self.attach_face.direction());
+        
         let global_translation = (parent.rotation * translation) + parent.translation;
         let global_attach_point = (parent.rotation * attach_point) + parent.translation;
         let local_anchor = self.orientation.inverse() * (global_attach_point - global_translation);

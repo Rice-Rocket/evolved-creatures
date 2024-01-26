@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{core::FrameCount, prelude::*};
 use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_editor_pls::prelude::*;
@@ -7,20 +7,21 @@ use bevy_editor_pls::prelude::*;
 pub mod creature_builder;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{CreatureBuilderConfig, ActiveCollisionTypes}, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
+use creature_builder::{builder::{node::{BuildParameters, BuildResult, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{CreatureBuilderConfig, ActiveCollisionTypes}, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
 
 
 pub fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                present_mode: bevy::window::PresentMode::AutoNoVsync,
+                // present_mode: bevy::window::PresentMode::AutoNoVsync,
                 ..default()
             }),
             ..default()
         }))
 
         .add_systems(Startup, (setup, builder_scene))
+        .add_systems(Update, animate_creature_build)
         .add_plugins(CreatureBuilderPlugin)
 
         .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
@@ -46,8 +47,6 @@ pub fn main() {
 
 fn builder_scene(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let mut builder_graph = CreatureMorphologyGraph::new();
 
@@ -67,7 +66,7 @@ fn builder_scene(
             attach_face: LimbAttachFace::PosY,
             attach_position: Vec2::splat(0.0),
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.1, 0.0),
-            scale: Vec3::new(0.5, 1.0, 0.5),
+            scale: Vec3::new(0.5, 0.5, 0.5),
         },
         density: 1.0,
         terminal_only: false,
@@ -76,7 +75,7 @@ fn builder_scene(
     let scales = builder_graph.add_node(LimbNode {
         placement: LimbRelativePlacement {
             attach_face: LimbAttachFace::NegZ,
-            attach_position: Vec2::new(0.0, 0.8),
+            attach_position: Vec2::new(0.0, 0.0),
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, std::f32::consts::FRAC_PI_2, 0.0),
             scale: Vec3::new(0.5, 0.5, 0.5),
         },
@@ -106,12 +105,24 @@ fn builder_scene(
 
     builder_graph.set_root(body);
 
-    let mut result = builder_graph.evaluate(BuildParameters {
+    let result = builder_graph.evaluate(BuildParameters {
         root_transform: Transform::from_xyz(0.0, 10.0, 0.0),
     });
 
-    while let Some(limb) = result.limb_build_queue.pop() {
-        commands.spawn(limb.finish(&mut meshes, &mut materials));
+    commands.insert_resource(result);
+}
+
+fn animate_creature_build(
+    frame: Res<FrameCount>,
+    mut result: ResMut<BuildResult>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    if frame.0 % 60 == 0 {
+        if let Some(limb) = result.limb_build_queue.pop() {
+            commands.spawn(limb.finish(&mut meshes, &mut materials));
+        }
     }
 }
 
