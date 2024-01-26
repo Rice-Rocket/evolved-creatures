@@ -7,7 +7,7 @@ use bevy_editor_pls::prelude::*;
 pub mod creature_builder;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{CreatureBuilderPlugin, limb::CreatureLimbBundle, joint::CreatureJointBuilder, sensor::{ContactFilter, ContactFilterTag}, config::{CreatureBuilderConfig, ActiveCollisionTypes}};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{CreatureBuilderConfig, ActiveCollisionTypes}, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
 
 
 pub fn main() {
@@ -20,7 +20,7 @@ pub fn main() {
             ..default()
         }))
 
-        .add_systems(Startup, (setup, joint_scene))
+        .add_systems(Startup, (setup, builder_scene))
         .add_plugins(CreatureBuilderPlugin)
 
         .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
@@ -31,15 +31,88 @@ pub fn main() {
 
         .insert_resource(RapierConfiguration {
             timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
+            gravity: Vec3::ZERO,
             // timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
             ..default()
         })
 
         .insert_resource(CreatureBuilderConfig {
-            collision_types: ActiveCollisionTypes::ALL,
+            collision_types: ActiveCollisionTypes::LIMB_VS_GROUND,
         })
 
         .run();
+}
+
+
+fn builder_scene(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mut builder_graph = CreatureMorphologyGraph::new();
+
+    let body = builder_graph.add_node(LimbNode {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::PosY, 
+            attach_position: Vec2::splat(0.5),
+            orientation: Quat::IDENTITY,
+            scale: Vec3::new(2.0, 3.0, 2.0),
+        },
+        density: 1.0,
+        terminal_only: false,
+        recursive_limit: 1,
+    });
+    let arm = builder_graph.add_node(LimbNode {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::PosY,
+            attach_position: Vec2::splat(0.0),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.1, 0.0),
+            scale: Vec3::new(0.5, 1.0, 0.5),
+        },
+        density: 1.0,
+        terminal_only: false,
+        recursive_limit: 3,
+    });
+    let scales = builder_graph.add_node(LimbNode {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::NegZ,
+            attach_position: Vec2::new(0.0, 0.8),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, std::f32::consts::FRAC_PI_2, 0.0),
+            scale: Vec3::new(0.5, 0.5, 0.5),
+        },
+        density: 1.0,
+        terminal_only: false,
+        recursive_limit: 3,
+    });
+
+    builder_graph.add_edge(LimbConnection {
+        locked_axes: LockedAxes::all(),
+        limit_axes: [[1.0; 2]; 6],
+        local_anchor: Vec3::Y,
+        parent_local_anchor: Vec3::NEG_Y,
+    }, body, arm);
+    builder_graph.add_edge(LimbConnection {
+        locked_axes: LockedAxes::all(),
+        limit_axes: [[1.0; 2]; 6],
+        local_anchor: Vec3::Y,
+        parent_local_anchor: Vec3::NEG_Y,
+    }, arm, arm);
+    builder_graph.add_edge(LimbConnection {
+        locked_axes: LockedAxes::all(),
+        limit_axes: [[1.0; 2]; 6],
+        local_anchor: Vec3::Y,
+        parent_local_anchor: Vec3::NEG_Y,
+    }, arm, scales);
+
+    builder_graph.set_root(body);
+
+    let mut result = builder_graph.evaluate(BuildParameters {
+        root_transform: Transform::from_xyz(0.0, 10.0, 0.0),
+    });
+
+    while let Some(limb) = result.limb_build_queue.pop() {
+        commands.spawn(limb.finish(&mut meshes, &mut materials));
+    }
 }
 
 

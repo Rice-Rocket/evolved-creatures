@@ -4,12 +4,13 @@ use bevy::prelude::*;
 use super::sensor::{LimbCollisionSensor, ContactFilterTag};
 
 
-#[derive(Component)]
+
+#[derive(Component, Clone)]
 pub struct CreatureLimb;
 
 
 
-#[derive(Bundle)]
+#[derive(Bundle, Clone)]
 pub struct CreatureLimbBundle {
     pub(crate) limb: CreatureLimb,
     pub(crate) sensor: LimbCollisionSensor,

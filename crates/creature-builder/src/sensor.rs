@@ -11,7 +11,7 @@ pub(crate) enum ContactFilterTag {
 }
 
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub(crate) enum LimbCollisionSensor {
     SelfCollision,
     GroundCollision,

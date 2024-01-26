@@ -6,6 +6,7 @@ use bevy_rapier3d::dynamics::{GenericJoint, ImpulseJoint};
 pub struct CreatureJoint;
 
 
+#[derive(Clone)]
 pub struct CreatureJointBuilder {
     pub(crate) parent: Entity,
     pub(crate) data: GenericJoint,

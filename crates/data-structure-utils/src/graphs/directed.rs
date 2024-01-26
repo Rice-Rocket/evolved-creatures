@@ -6,24 +6,28 @@ pub struct NodeID(usize);
 pub struct EdgeID(usize);
 
 
-pub trait NodeData<E: EdgeData, R: DirectedGraphResult> {
-    fn evaluate(&self, result: &mut R, from_node: Option<&Self>, from_edge: Option<&E>);
+pub trait NodeData<E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParameters> {
+    fn evaluate(&self, result: &mut R, params: &P, id: NodeID, from_node: Option<&Self>, from_edge: Option<&E>, from_node_id: NodeID, from_edge_id: EdgeID) -> bool;
+    fn on_leave(&self, result: &mut R, params: &P, id: NodeID);
 }
 
-pub struct DirectedGraphNode<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> {
+pub struct DirectedGraphNode<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParameters> {
     pub outs: Vec<EdgeID>,
     pub data: N,
     phantom: PhantomData<E>,
     phantom2: PhantomData<R>,
+    phantom3: PhantomData<P>,
 }
 
-impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraphNode<N, E, R> {
-    pub fn new(data: N) -> DirectedGraphNode<N, E, R> {
-        Self { outs: Vec::new(), data, phantom: PhantomData, phantom2: PhantomData }
+impl<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParameters> DirectedGraphNode<N, E, R, P> {
+    pub fn new(data: N) -> DirectedGraphNode<N, E, R, P> {
+        Self { outs: Vec::new(), data, phantom: PhantomData, phantom2: PhantomData, phantom3: PhantomData }
     }
-    pub fn evaluate(&self, result: &mut R, from_node: Option<&DirectedGraphNode<N, E, R>>, from_edge: Option<&DirectedGraphEdge<E>>) {
+    pub fn evaluate(&self, result: &mut R, params: &P, id: NodeID, from_node: Option<&DirectedGraphNode<N, E, R, P>>, from_edge: Option<&DirectedGraphEdge<E>>, from_node_id: NodeID, from_edge_id: EdgeID) -> bool {
         self.data.evaluate(
             result, 
+            params, 
+            id,
             match from_node {
                 Some(node) => Some(&node.data),
                 None => None
@@ -31,8 +35,13 @@ impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraphNode<N
             match from_edge {
                 Some(edge) => Some(&edge.data),
                 None => None
-            }
-        );
+            },
+            from_node_id,
+            from_edge_id,
+        )
+    }
+    pub fn on_leave(&self, result: &mut R, params: &P, id: NodeID) {
+        self.data.on_leave(result, params, id);
     }
 }
 
@@ -51,15 +60,19 @@ pub trait DirectedGraphResult {
 }
 
 
-pub struct DirectedGraph<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> {
+pub trait DirectedGraphParameters {}
+
+
+pub struct DirectedGraph<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParameters> {
     root_node: Option<NodeID>,
-    nodes: HashMap<NodeID, DirectedGraphNode<N, E, R>>,
+    nodes: HashMap<NodeID, DirectedGraphNode<N, E, R, P>>,
     edges: HashMap<EdgeID, DirectedGraphEdge<E>>,
     cur_id: usize, 
-    phantom: PhantomData<R>
+    phantom: PhantomData<R>,
+    phantom2: PhantomData<P>,
 }
 
-impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraph<N, E, R> {
+impl<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParameters> DirectedGraph<N, E, R, P> {
     pub fn new() -> Self {
         Self {
             root_node: None,
@@ -67,6 +80,7 @@ impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraph<N, E,
             edges: HashMap::new(),
             cur_id: 0,
             phantom: PhantomData,
+            phantom2: PhantomData,
         }
     }
 
@@ -111,11 +125,11 @@ impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraph<N, E,
     }
 
     /// Borrows a node given its `NodeID`
-    pub fn get_node(&self, id: NodeID) -> Option<&DirectedGraphNode<N, E, R>> {
+    pub fn get_node(&self, id: NodeID) -> Option<&DirectedGraphNode<N, E, R, P>> {
         self.nodes.get(&id)
     }
     /// Mutably borrows a node given its `NodeID`
-    pub fn get_node_mut(&mut self, id: NodeID) -> Option<&mut DirectedGraphNode<N, E, R>> {
+    pub fn get_node_mut(&mut self, id: NodeID) -> Option<&mut DirectedGraphNode<N, E, R, P>> {
         self.nodes.get_mut(&id)
     }
     /// Borrows an edge given its `EdgeID`
@@ -127,7 +141,7 @@ impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraph<N, E,
         self.edges.get_mut(&id)
     }
     /// Borrows a node given its `NodeID` without checking if it exists
-    pub fn get_node_unchecked(&self, id: NodeID) -> &DirectedGraphNode<N, E, R> {
+    pub fn get_node_unchecked(&self, id: NodeID) -> &DirectedGraphNode<N, E, R, P> {
         self.nodes.get(&id).unwrap()
     }
     /// Borrows an edge given its `EdgeID` without checking if it exists
@@ -135,7 +149,7 @@ impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraph<N, E,
         self.edges.get(&id).unwrap()
     }
     /// Mutably borrows a node given its `NodeID` without checking if it exists
-    pub fn get_node_mut_unchecked(&mut self, id: NodeID) -> &mut DirectedGraphNode<N, E, R> {
+    pub fn get_node_mut_unchecked(&mut self, id: NodeID) -> &mut DirectedGraphNode<N, E, R, P> {
         self.nodes.get_mut(&id).unwrap()
     }
     /// Mutably borrows an edge given its `EdgeID` without checking if it exists
@@ -143,25 +157,28 @@ impl<N: NodeData<E, R>, E: EdgeData, R: DirectedGraphResult> DirectedGraph<N, E,
         self.edges.get_mut(&id).unwrap()
     }
 
-    fn eval(&self, result: &mut R, cur_id: NodeID) {
+    fn eval(&self, result: &mut R, params: &P, cur_id: NodeID) {
         let cur_node = self.get_node_unchecked(cur_id);
         
         for edge_id in cur_node.outs.iter() {
             let Some(edge) = self.get_edge(*edge_id) else { continue };
             let Some(next_node) = self.get_node(edge.to) else { continue };
             
-            next_node.evaluate(result, Some(cur_node), Some(edge));
-            self.eval(result, edge.to);
+            let should_continue = next_node.evaluate(result, params, edge.to, Some(cur_node), Some(edge), cur_id, *edge_id);
+            if !should_continue { continue };
+            self.eval(result, params, edge.to);
+            next_node.on_leave(result, params, edge.to);
         }
     }
     /// Evaluates the graph, returning the user-defined `DirectedGraphResult`
-    pub fn evaluate(&self) -> R {
+    pub fn evaluate(&self, params: P) -> R {
         let mut result = R::initial();
         let Some(root_id) = self.root_node else { panic!("No root node set for directed graph") };
 
         if let Some(root_node) = self.get_node(root_id) {
-            root_node.evaluate(&mut result, None, None);
-            self.eval(&mut result, root_id);
+            root_node.evaluate(&mut result, &params, root_id, None, None, NodeID(0), EdgeID(0));
+            self.eval(&mut result, &params, root_id);
+            root_node.on_leave(&mut result, &params, root_id);
         };
 
         result
