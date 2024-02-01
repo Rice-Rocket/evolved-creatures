@@ -6,17 +6,15 @@ use super::{super::{limb::CreatureLimbBundle, joint::CreatureJointBuilder}, plac
 
 
 pub struct LimbConnection {
+    pub placement: LimbRelativePlacement,
     pub locked_axes: LockedAxes,
     pub limit_axes: [[f32; 2]; 6],
-    pub local_anchor: Vec3,
-    pub parent_local_anchor: Vec3,
 }
 
 impl EdgeData for LimbConnection {}
 
 
 pub struct LimbNode {
-    pub placement: LimbRelativePlacement,
     pub density: f32,
     pub terminal_only: bool,
     pub recursive_limit: usize,
@@ -31,10 +29,10 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
         from_node: Option<&Self>, 
         from_edge: Option<&LimbConnection>, 
         from_node_id: NodeID, 
-        from_edge_id: EdgeID
+        _from_edge_id: EdgeID
     ) -> bool {
         match (from_node, from_edge) {
-            (Some(prev_node), Some(edge)) => {
+            (Some(_prev_node), Some(edge)) => {
                 let is_terminal = if let Some(recursive_limit) = result.recursive_limits.get(&id) {
                     *recursive_limit == 0
                 } else {
@@ -44,7 +42,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 let should_spawn = is_terminal == self.terminal_only;
 
                 let prev_transform = result.transforms.get(&from_node_id).unwrap().peek().unwrap();
-                let limb_position = self.placement.create_transform(prev_transform);
+                let limb_position = edge.placement.create_transform(prev_transform);
                 if should_spawn {
                     result.limb_build_queue.push(
                         CreatureLimbBundle::new()
@@ -80,14 +78,14 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 result.limb_build_queue.push(
                     CreatureLimbBundle::new()
                         .with_transform(params.root_transform)
-                        .with_size(self.placement.scale)
+                        .with_size(params.root_transform.scale)
                 );
                 
                 match result.transforms.get_mut(&id) {
-                    Some(history) => { history.push(params.root_transform.with_scale(self.placement.scale)) },
+                    Some(history) => { history.push(params.root_transform.with_scale(params.root_transform.scale)) },
                     None => {
                         let mut history = Stack::new();
-                        history.push(params.root_transform.with_scale(self.placement.scale));
+                        history.push(params.root_transform.with_scale(params.root_transform.scale));
                         result.transforms.insert(id, history);
                     }
                 };

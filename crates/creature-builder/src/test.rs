@@ -7,7 +7,7 @@ use bevy_editor_pls::prelude::*;
 pub mod creature_builder;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, BuildResult, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{CreatureBuilderConfig, ActiveCollisionTypes}, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
+use creature_builder::{builder::{node::{BuildParameters, BuildResult, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{CreatureBuilderConfig, ActiveCollisionTypes}, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::ContactFilter, CreatureBuilderPlugin};
 
 
 pub fn main() {
@@ -51,62 +51,51 @@ fn builder_scene(
     let mut builder_graph = CreatureMorphologyGraph::new();
 
     let body = builder_graph.add_node(LimbNode {
-        placement: LimbRelativePlacement {
-            attach_face: LimbAttachFace::PosY, 
-            attach_position: Vec2::splat(0.5),
-            orientation: Quat::IDENTITY,
-            scale: Vec3::new(2.0, 3.0, 2.0),
-        },
-        density: 1.0,
-        terminal_only: false,
-        recursive_limit: 1,
-    });
-    let arm = builder_graph.add_node(LimbNode {
-        placement: LimbRelativePlacement {
-            attach_face: LimbAttachFace::PosY,
-            attach_position: Vec2::splat(0.0),
-            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.1, 0.0),
-            scale: Vec3::new(0.5, 0.5, 0.5),
-        },
         density: 1.0,
         terminal_only: false,
         recursive_limit: 3,
     });
-    let scales = builder_graph.add_node(LimbNode {
-        placement: LimbRelativePlacement {
-            attach_face: LimbAttachFace::NegZ,
-            attach_position: Vec2::new(0.0, 0.0),
-            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, std::f32::consts::FRAC_PI_2, 0.0),
-            scale: Vec3::new(0.5, 0.5, 0.5),
-        },
+    let leg = builder_graph.add_node(LimbNode {
         density: 1.0,
         terminal_only: false,
-        recursive_limit: 3,
+        recursive_limit: 6,
     });
 
     builder_graph.add_edge(LimbConnection {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::PosY,
+            attach_position: Vec2::new(0.0, 0.0),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.1, 0.0),
+            scale: Vec3::ONE,
+        },
         locked_axes: LockedAxes::all(),
         limit_axes: [[1.0; 2]; 6],
-        local_anchor: Vec3::Y,
-        parent_local_anchor: Vec3::NEG_Y,
-    }, body, arm);
+    }, body, body);
     builder_graph.add_edge(LimbConnection {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::PosX,
+            attach_position: Vec2::new(0.0, 0.0),
+            orientation: Quat::from_euler(EulerRot::YXZ, -0.2, 0.0, 0.0),
+            scale: Vec3::new(0.8, 0.8, 0.8),
+        },
         locked_axes: LockedAxes::all(),
         limit_axes: [[1.0; 2]; 6],
-        local_anchor: Vec3::Y,
-        parent_local_anchor: Vec3::NEG_Y,
-    }, arm, arm);
+    }, body, leg);
     builder_graph.add_edge(LimbConnection {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::NegX,
+            attach_position: Vec2::new(0.0, 0.0),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.2, 0.0, 0.0),
+            scale: Vec3::new(0.8, 0.8, 0.8),
+        },
         locked_axes: LockedAxes::all(),
         limit_axes: [[1.0; 2]; 6],
-        local_anchor: Vec3::Y,
-        parent_local_anchor: Vec3::NEG_Y,
-    }, arm, scales);
+    }, body, leg);
 
     builder_graph.set_root(body);
 
     let result = builder_graph.evaluate(BuildParameters {
-        root_transform: Transform::from_xyz(0.0, 10.0, 0.0),
+        root_transform: Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::new(1.0, 2.0, 1.0)),
     });
 
     commands.insert_resource(result);
@@ -121,12 +110,16 @@ fn animate_creature_build(
 ) {
     if frame.0 % 60 == 0 {
         if let Some(limb) = result.limb_build_queue.pop() {
-            commands.spawn(limb.finish(&mut meshes, &mut materials));
+            let color = Color::rgba(1.0, 1.0, 1.0, 0.8);
+            commands.spawn(
+                limb.with_color(color).finish(&mut meshes, &mut materials)
+            );
         }
     }
 }
 
 
+#[allow(dead_code)]
 fn joint_scene(
     mut commands: Commands, 
     mut meshes: ResMut<Assets<Mesh>>,
@@ -168,6 +161,7 @@ fn joint_scene(
 }
 
 
+#[allow(dead_code, unused_variables, unused_mut)]
 fn setup(
     mut gizmo_config: ResMut<GizmoConfig>,
     mut commands: Commands,
@@ -188,34 +182,34 @@ fn setup(
         PanOrbitCamera::default(),
     ));
 
-    commands.spawn((
-        RigidBody::KinematicPositionBased,
-        Velocity { linvel: Vec3::ZERO, angvel: Vec3::ZERO },
-        GravityScale(1.0),
-        ActiveEvents::COLLISION_EVENTS,
-        ActiveHooks::FILTER_CONTACT_PAIRS,
-        ContactFilterTag::GroundGroup,
+    // commands.spawn((
+    //     RigidBody::KinematicPositionBased,
+    //     Velocity { linvel: Vec3::ZERO, angvel: Vec3::ZERO },
+    //     GravityScale(1.0),
+    //     ActiveEvents::COLLISION_EVENTS,
+    //     ActiveHooks::FILTER_CONTACT_PAIRS,
+    //     ContactFilterTag::GroundGroup,
 
-        Collider::cuboid(50.0, 5.0, 50.0),
-        Friction { coefficient: 0.3, combine_rule: CoefficientCombineRule::Average },
-        Restitution { coefficient: 0.0, combine_rule: CoefficientCombineRule::Average },
-        ColliderMassProperties::Density(1.0),
+    //     Collider::cuboid(50.0, 5.0, 50.0),
+    //     Friction { coefficient: 0.3, combine_rule: CoefficientCombineRule::Average },
+    //     Restitution { coefficient: 0.0, combine_rule: CoefficientCombineRule::Average },
+    //     ColliderMassProperties::Density(1.0),
 
-        PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Box::new(100.0, 10.0, 100.0))),
-            material: materials.add(StandardMaterial {
-                base_color: Color::rgb(0.1, 0.1, 0.1),
-                perceptual_roughness: 0.9,
-                reflectance: 0.1,
-                metallic: 0.0,
-                ..default()
-            }),
-            transform: Transform::from_xyz(0.0, -5.0, 0.0),
-            ..default()
-        },
+    //     PbrBundle {
+    //         mesh: meshes.add(Mesh::from(shape::Box::new(100.0, 10.0, 100.0))),
+    //         material: materials.add(StandardMaterial {
+    //             base_color: Color::rgb(0.1, 0.1, 0.1),
+    //             perceptual_roughness: 0.9,
+    //             reflectance: 0.1,
+    //             metallic: 0.0,
+    //             ..default()
+    //         }),
+    //         transform: Transform::from_xyz(0.0, -5.0, 0.0),
+    //         ..default()
+    //     },
         
-        Name::new("Ground")
-    ));
+    //     Name::new("Ground")
+    // ));
 
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
