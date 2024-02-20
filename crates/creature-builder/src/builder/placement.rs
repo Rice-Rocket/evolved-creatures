@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use std::f32::consts::FRAC_PI_2;
 
 
+#[derive(Debug)]
 pub enum LimbAttachFace {
     PosX, 
     NegX,
@@ -34,12 +34,12 @@ impl LimbAttachFace {
     }
     pub fn orientation(&self) -> Quat {
         match *self {
-            LimbAttachFace::PosX => Quat::from_rotation_z(FRAC_PI_2),
-            LimbAttachFace::NegX => Quat::from_rotation_z(-FRAC_PI_2),
+            LimbAttachFace::PosX => Quat::from_rotation_arc(Vec3::Y, Vec3::X),
+            LimbAttachFace::NegX => Quat::from_rotation_arc(Vec3::Y, Vec3::NEG_X),
             LimbAttachFace::PosY => Quat::IDENTITY,
             LimbAttachFace::NegY => Quat::from_rotation_arc(Vec3::Y, Vec3::NEG_Y),
-            LimbAttachFace::PosZ => Quat::from_rotation_x(FRAC_PI_2),
-            LimbAttachFace::NegZ => Quat::from_rotation_x(-FRAC_PI_2),
+            LimbAttachFace::PosZ => Quat::from_rotation_arc(Vec3::Y, Vec3::Z),
+            LimbAttachFace::NegZ => Quat::from_rotation_arc(Vec3::Y, Vec3::NEG_Z),
         }
     }
     pub fn from_index(index: usize) -> Self {
@@ -74,18 +74,15 @@ pub struct LimbPosition {
 
 impl LimbRelativePlacement {
     pub fn create_transform(&self, parent: Transform) -> LimbPosition {
-        let actual_orientation = self.orientation * self.attach_face.orientation();
+        let actual_orientation = self.attach_face.orientation() * self.orientation;
 
         let orientation = parent.rotation * actual_orientation; 
         let attach_point = parent.scale * (self.attach_face.direction() + self.attach_face.on_tangent_plane(self.attach_position));
+        let local_anchor = parent.scale * self.scale * Vec3::NEG_Y;
 
-        // broken part
-        let to_body_mid = self.orientation * self.attach_face.direction();
-        let translation = attach_point + to_body_mid * (parent.scale * self.scale).dot(Vec3::Y);
-        
-        let global_translation = (parent.rotation * translation) + parent.translation;
         let global_attach_point = (parent.rotation * attach_point) + parent.translation;
-        let local_anchor = actual_orientation.inverse() * (global_attach_point - global_translation);
+        let to_body_mid = orientation * Vec3::Y;
+        let global_translation = global_attach_point + to_body_mid * (parent.scale * self.scale).dot(Vec3::Y);
 
         LimbPosition {
             transform: Transform::from_translation(global_translation)

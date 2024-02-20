@@ -1,5 +1,5 @@
 use bevy::{prelude::*, utils::HashMap};
-use bevy_rapier3d::dynamics::LockedAxes;
+use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, LockedAxes};
 use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphResult, DirectedGraph, NodeID, EdgeID, DirectedGraphParameters}, queue::Queue, stack::Stack};
 
 use super::{super::{limb::CreatureLimbBundle, joint::CreatureJointBuilder}, placement::LimbRelativePlacement};
@@ -43,11 +43,28 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
 
                 let prev_transform = result.transforms.get(&from_node_id).unwrap().peek().unwrap();
                 let limb_position = edge.placement.create_transform(prev_transform);
+                let prev_limb_id = result.node_limb_ids.get(&from_node_id).unwrap().peek().unwrap();
+                let cur_limb_id = result.current_limb_id;
                 if should_spawn {
                     result.limb_build_queue.push(
-                        CreatureLimbBundle::new()
-                            .with_transform(limb_position.transform.with_scale(Vec3::ONE))
-                            .with_size(limb_position.transform.scale)
+                        (
+                            CreatureLimbBundle::new()
+                                .with_transform(limb_position.transform.with_scale(Vec3::ONE))
+                                .with_size(limb_position.transform.scale),
+                            cur_limb_id,
+                        )
+                    );
+                    result.joint_build_queue.push(
+                        (
+                            CreatureJointBuilder::new().with_generic_joint(
+                                GenericJointBuilder::new(JointAxesMask::all())
+                                    .local_anchor1(limb_position.parent_local_anchor)
+                                    .local_anchor2(limb_position.local_anchor)
+                                    .local_basis1(prev_transform.rotation.inverse() * limb_position.transform.rotation)
+                                    .build()
+                            ),
+                            cur_limb_id, prev_limb_id
+                        )
                     );
                 }
 
@@ -61,7 +78,17 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                             result.transforms.insert(id, history);
                         }
                     }
+                    match result.node_limb_ids.get_mut(&id) {
+                        Some(history) => { history.push(cur_limb_id) },
+                        None => {
+                            let mut history = Stack::new();
+                            history.push(cur_limb_id);
+                            result.node_limb_ids.insert(id, history);
+                        }
+                    }
                 }
+
+                result.current_limb_id += 1;
 
                 if is_terminal { return false };
 
@@ -75,11 +102,17 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 }
             },
             _ => {
+                let cur_limb_id = result.current_limb_id;
                 result.limb_build_queue.push(
-                    CreatureLimbBundle::new()
-                        .with_transform(params.root_transform)
-                        .with_size(params.root_transform.scale)
+                    (
+                        CreatureLimbBundle::new()
+                            .with_transform(params.root_transform)
+                            .with_size(params.root_transform.scale),
+                        cur_limb_id
+                    )
                 );
+
+                result.current_limb_id += 1;
                 
                 match result.transforms.get_mut(&id) {
                     Some(history) => { history.push(params.root_transform.with_scale(params.root_transform.scale)) },
@@ -87,6 +120,14 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                         let mut history = Stack::new();
                         history.push(params.root_transform.with_scale(params.root_transform.scale));
                         result.transforms.insert(id, history);
+                    }
+                };
+                match result.node_limb_ids.get_mut(&id) {
+                    Some(history) => { history.push(cur_limb_id) },
+                    None => {
+                        let mut history = Stack::new();
+                        history.push(cur_limb_id);
+                        result.node_limb_ids.insert(id, history);
                     }
                 };
 
@@ -99,16 +140,21 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
         if let Some(history) = result.transforms.get_mut(&id) {
             history.pop();
         }
+        if let Some(history) = result.node_limb_ids.get_mut(&id) {
+            history.pop();
+        }
     }
 }
 
 
 #[derive(Resource)]
 pub struct BuildResult {
-    pub limb_build_queue: Queue<CreatureLimbBundle>,
-    pub joint_build_queue: Queue<CreatureJointBuilder>,
+    pub limb_build_queue: Queue<(CreatureLimbBundle, usize)>,
+    pub joint_build_queue: Queue<(CreatureJointBuilder, usize, usize)>,
     recursive_limits: HashMap<NodeID, usize>,
     transforms: HashMap<NodeID, Stack<Transform>>,
+    node_limb_ids: HashMap<NodeID, Stack<usize>>,
+    current_limb_id: usize,
 }
 
 impl DirectedGraphResult for BuildResult {
@@ -118,6 +164,8 @@ impl DirectedGraphResult for BuildResult {
             joint_build_queue: Queue::new(),
             recursive_limits: HashMap::new(),
             transforms: HashMap::new(),
+            current_limb_id: 0,
+            node_limb_ids: HashMap::new(),
         }
     }
 }
