@@ -170,6 +170,25 @@ impl DirectedGraphResult for BuildResult {
     }
 }
 
+impl BuildResult {
+    pub fn build(&mut self, commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) {
+        let mut entity_ids = HashMap::new();
+        while let Some(limb) = self.limb_build_queue.pop() {
+            let id = commands.spawn(
+                limb.0.with_color(Color::rgba(1.0, 1.0, 1.0, 0.8)).finish(meshes, materials)
+            ).id();
+            entity_ids.insert(limb.1, id);
+        }
+
+        while let Some(joint) = self.joint_build_queue.pop() {
+            let parent = entity_ids.get(&joint.2).unwrap();
+            commands
+                .entity(*entity_ids.get(&joint.1).unwrap())
+                .insert(joint.0.with_parent(*parent).finish());
+        }
+    }
+}
+
 
 pub struct BuildParameters {
     pub root_transform: Transform,

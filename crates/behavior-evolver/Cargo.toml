@@ -1,0 +1,20 @@
+[package]
+name = "behavior-evolver"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy.workspace = true
+bevy_rapier3d.workspace = true
+
+bevy_panorbit_camera.workspace = true
+bevy_screen_diagnostics.workspace = true
+bevy_editor_pls.workspace = true
+creature-builder.workspace = true
+
+[[test]]
+name = "behavior-evolver-test"
+path = "src/test.rs"
+harness = false

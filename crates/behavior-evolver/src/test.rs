@@ -4,10 +4,10 @@ use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlu
 use bevy_editor_pls::prelude::*;
 
 #[path = "./lib.rs"]
-pub mod creature_builder;
+pub mod behavior_evolver;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{CreatureBuilderConfig, ActiveCollisionTypes}, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
 
 
 pub fn main() {
@@ -20,7 +20,7 @@ pub fn main() {
             ..default()
         }))
 
-        .add_systems(Startup, (setup, builder_scene, setup_ground))
+        .add_systems(Startup, (setup, behavior_evolver_scene, setup_ground))
         .add_plugins(CreatureBuilderPlugin)
 
         .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
@@ -30,9 +30,8 @@ pub fn main() {
         .add_plugins(RapierPhysicsEditorPlugin)
 
         .insert_resource(RapierConfiguration {
-            timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 0.01, substeps: 1 },
+            timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
             gravity: Vec3::ZERO,
-            // timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
             ..default()
         })
 
@@ -45,104 +44,69 @@ pub fn main() {
 
 
 #[allow(dead_code)]
-fn builder_scene(
+fn behavior_evolver_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    use std::f32::consts::FRAC_PI_2;
+
     let mut builder_graph = CreatureMorphologyGraph::new();
 
     let body = builder_graph.add_node(LimbNode {
         density: 1.0,
         terminal_only: false,
-        recursive_limit: 2,
+        recursive_limit: 1,
     });
-    let leg = builder_graph.add_node(LimbNode {
+    let arm = builder_graph.add_node(LimbNode {
         density: 1.0,
         terminal_only: false,
-        recursive_limit: 6,
+        recursive_limit: 2,
+    });
+    let arm2 = builder_graph.add_node(LimbNode {
+        density: 1.0,
+        terminal_only: false,
+        recursive_limit: 2,
     });
 
+    builder_graph.add_edge(LimbConnection {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::PosX,
+            attach_position: Vec2::new(0.4, 0.9),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.2, 0.2),
+            scale: Vec3::new(0.4, 0.8, 0.6),
+        },
+        locked_axes: LockedAxes::all(),
+        limit_axes: [[1.0; 2]; 6],
+    }, body, arm);
+    builder_graph.add_edge(LimbConnection {
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::PosX,
+            attach_position: Vec2::new(0.4, -0.9),
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, -0.2, 0.2),
+            scale: Vec3::new(0.4, 0.8, 0.6),
+        },
+        locked_axes: LockedAxes::all(),
+        limit_axes: [[1.0; 2]; 6],
+    }, body, arm);
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
             attach_face: LimbAttachFace::PosY,
             attach_position: Vec2::new(0.0, 0.0),
-            orientation: Quat::from_euler(EulerRot::YXZ, 0.8, 0.0, 0.0),
-            scale: Vec3::ONE,
+            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, FRAC_PI_2, -FRAC_PI_2),
+            scale: Vec3::new(1.0, 0.7, 1.0),
         },
         locked_axes: LockedAxes::all(),
         limit_axes: [[1.0; 2]; 6],
-    }, body, body);
-    builder_graph.add_edge(LimbConnection {
-        placement: LimbRelativePlacement {
-            attach_face: LimbAttachFace::PosX,
-            attach_position: Vec2::new(0.0, 0.0),
-            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
-            scale: Vec3::new(0.8, 0.8, 0.8),
-        },
-        locked_axes: LockedAxes::all(),
-        limit_axes: [[1.0; 2]; 6],
-    }, body, leg);
-    builder_graph.add_edge(LimbConnection {
-        placement: LimbRelativePlacement {
-            attach_face: LimbAttachFace::NegX,
-            attach_position: Vec2::new(0.0, 0.0),
-            orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
-            scale: Vec3::new(0.8, 0.8, 0.8),
-        },
-        locked_axes: LockedAxes::all(),
-        limit_axes: [[1.0; 2]; 6],
-    }, body, leg);
+    }, arm, arm2);
 
     builder_graph.set_root(body);
 
     let mut result = builder_graph.evaluate(BuildParameters {
-        root_transform: Transform::from_xyz(0.0, 5.0, 0.0).with_scale(Vec3::new(1.0, 2.0, 1.0)),
+        root_transform: Transform::from_xyz(0.0, 5.0, 0.0).with_scale(Vec3::new(1.0, 1.5, 1.0)),
     });
 
     result.build(&mut commands, &mut meshes, &mut materials);
-}
-
-
-#[allow(dead_code)]
-fn joint_scene(
-    mut commands: Commands, 
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let red_id = commands.spawn((
-        CreatureLimbBundle::new()
-            .with_color(Color::rgb(0.8, 0.1, 0.1))
-            .with_size(Vec3::splat(1.0))
-            .with_transform(Transform::from_xyz(0.0, 2.0, 0.0))
-            .finish(&mut meshes, &mut materials),
-        Name::new("Red Body")
-    )).id();
-
-    let mut blue = commands.spawn((
-        CreatureLimbBundle::new()
-            .with_color(Color::rgb(0.1, 0.1, 0.8))
-            .with_size(Vec3::splat(1.0))
-            .with_transform(Transform::from_xyz(0.0, 3.0, 0.0))
-            .finish(&mut meshes, &mut materials),
-        Name::new("Blue Body")
-    ));
-
-    blue.insert(
-        CreatureJointBuilder::new()
-            .with_parent(red_id)
-            .with_generic_joint(
-                GenericJointBuilder::new(JointAxesMask::LIN_AXES)
-                    .limits(JointAxis::AngY, [-0.5, 0.5])
-                    .limits(JointAxis::AngX, [-0.001, 0.001])
-                    .limits(JointAxis::AngZ, [-0.001, 0.001])
-                    .local_anchor1(Vec3::new(0.0, 1.0, 0.0))
-                    .local_anchor2(Vec3::new(0.0, -1.0, 0.0))
-                    // .set_motor(JointAxis::AngY, 0.2, 0.5, 0.9, 0.3)
-                    .build()
-            )
-            .finish()
-    );
 }
 
 

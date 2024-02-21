@@ -5,14 +5,14 @@ use super::config::{ActiveCollisionTypes, CreatureBuilderConfig};
 
 
 #[derive(PartialEq, Eq, Clone, Copy, Component)]
-pub(crate) enum ContactFilterTag {
+pub enum ContactFilterTag {
     GroundGroup,
     LimbGroup
 }
 
 
 #[derive(Component, Clone)]
-pub(crate) enum LimbCollisionSensor {
+pub enum LimbCollisionSensor {
     SelfCollision,
     GroundCollision,
     None
@@ -20,7 +20,7 @@ pub(crate) enum LimbCollisionSensor {
 
 
 #[derive(SystemParam)]
-pub(crate) struct ContactFilter<'w, 's> {
+pub struct ContactFilter<'w, 's> {
     pub(crate) tags: Query<'w, 's, &'static ContactFilterTag>,
     pub(crate) config: Res<'w, CreatureBuilderConfig>,
 }
