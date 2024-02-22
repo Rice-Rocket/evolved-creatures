@@ -21,6 +21,7 @@ pub fn main() {
         }))
 
         .add_systems(Startup, (setup, behavior_evolver_scene, setup_ground))
+        .add_systems(Update, behavior_main)
         .add_plugins(CreatureBuilderPlugin)
 
         .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
@@ -31,7 +32,7 @@ pub fn main() {
 
         .insert_resource(RapierConfiguration {
             timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
-            gravity: Vec3::ZERO,
+            // gravity: Vec3::ZERO,
             ..default()
         })
 
@@ -40,6 +41,13 @@ pub fn main() {
         })
 
         .run();
+}
+
+
+fn behavior_main(
+
+) {
+
 }
 
 
@@ -54,16 +62,19 @@ fn behavior_evolver_scene(
     let mut builder_graph = CreatureMorphologyGraph::new();
 
     let body = builder_graph.add_node(LimbNode {
+        name: Some("body".to_string()),
         density: 1.0,
         terminal_only: false,
         recursive_limit: 1,
     });
     let arm = builder_graph.add_node(LimbNode {
+        name: Some("arm".to_string()),
         density: 1.0,
         terminal_only: false,
         recursive_limit: 2,
     });
     let arm2 = builder_graph.add_node(LimbNode {
+        name: Some("hand".to_string()),
         density: 1.0,
         terminal_only: false,
         recursive_limit: 2,
@@ -76,8 +87,8 @@ fn behavior_evolver_scene(
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.2, 0.2),
             scale: Vec3::new(0.4, 0.8, 0.6),
         },
-        locked_axes: LockedAxes::all(),
-        limit_axes: [[1.0; 2]; 6],
+        locked_axes: JointAxesMask::LIN_AXES | JointAxesMask::ANG_X | JointAxesMask::ANG_Y,
+        limit_axes: [[0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [-1.0, 1.0]],
     }, body, arm);
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
@@ -86,8 +97,8 @@ fn behavior_evolver_scene(
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, -0.2, 0.2),
             scale: Vec3::new(0.4, 0.8, 0.6),
         },
-        locked_axes: LockedAxes::all(),
-        limit_axes: [[1.0; 2]; 6],
+        locked_axes: JointAxesMask::LIN_AXES | JointAxesMask::ANG_X | JointAxesMask::ANG_Y,
+        limit_axes: [[0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [-1.0, 1.0]],
     }, body, arm);
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
@@ -96,8 +107,8 @@ fn behavior_evolver_scene(
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, FRAC_PI_2, -FRAC_PI_2),
             scale: Vec3::new(1.0, 0.7, 1.0),
         },
-        locked_axes: LockedAxes::all(),
-        limit_axes: [[1.0; 2]; 6],
+        locked_axes: JointAxesMask::LIN_AXES | JointAxesMask::ANG_Z | JointAxesMask::ANG_Y,
+        limit_axes: [[0.0; 2], [0.0; 2], [0.0; 2], [-1.0, 1.0], [0.0; 2], [0.0; 2]],
     }, arm, arm2);
 
     builder_graph.set_root(body);

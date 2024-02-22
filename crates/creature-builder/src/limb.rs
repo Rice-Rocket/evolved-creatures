@@ -1,7 +1,7 @@
 use bevy_rapier3d::prelude::*;
 use bevy::prelude::*;
 
-use super::sensor::{LimbCollisionSensor, ContactFilterTag};
+use super::{builder::placement::LimbAttachFace, sensor::{LimbCollisionSensor, ContactFilterTag, LimbCollisionType}};
 
 
 
@@ -13,6 +13,7 @@ pub struct CreatureLimb;
 #[derive(Bundle, Clone)]
 pub struct CreatureLimbBundle {
     pub(crate) limb: CreatureLimb,
+    pub(crate) name: Name,
     pub(crate) sensor: LimbCollisionSensor,
     pub(crate) filter_tag: ContactFilterTag,
 
@@ -56,7 +57,8 @@ impl Default for CreatureLimbBundle {
     fn default() -> Self {
         CreatureLimbBundle {
             limb: CreatureLimb,
-            sensor: LimbCollisionSensor::None,
+            name: Name::new("()"),
+            sensor: LimbCollisionSensor { ty: LimbCollisionType::None, face: LimbAttachFace::PosY },
             filter_tag: ContactFilterTag::LimbGroup,
 
             rb: RigidBody::Dynamic,
@@ -114,6 +116,10 @@ impl CreatureLimbBundle {
     }
     pub fn with_initial_torque(mut self, torque: Vec3) -> Self {
         self.impulses.torque_impulse = torque;
+        self
+    }
+    pub fn with_name(mut self, name: String) -> Self {
+        self.name = Name::new(name);
         self
     }
     pub fn finish(mut self, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) -> Self {

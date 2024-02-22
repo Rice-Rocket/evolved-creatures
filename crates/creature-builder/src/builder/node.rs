@@ -1,5 +1,5 @@
 use bevy::{prelude::*, utils::HashMap};
-use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, LockedAxes};
+use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, JointAxis};
 use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphResult, DirectedGraph, NodeID, EdgeID, DirectedGraphParameters}, queue::Queue, stack::Stack};
 
 use super::{super::{limb::CreatureLimbBundle, joint::CreatureJointBuilder}, placement::LimbRelativePlacement};
@@ -7,7 +7,7 @@ use super::{super::{limb::CreatureLimbBundle, joint::CreatureJointBuilder}, plac
 
 pub struct LimbConnection {
     pub placement: LimbRelativePlacement,
-    pub locked_axes: LockedAxes,
+    pub locked_axes: JointAxesMask,
     pub limit_axes: [[f32; 2]; 6],
 }
 
@@ -15,6 +15,7 @@ impl EdgeData for LimbConnection {}
 
 
 pub struct LimbNode {
+    pub name: Option<String>,
     pub density: f32,
     pub terminal_only: bool,
     pub recursive_limit: usize,
@@ -50,6 +51,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                         (
                             CreatureLimbBundle::new()
                                 .with_transform(limb_position.transform.with_scale(Vec3::ONE))
+                                .with_name(match self.name.clone() { Some(name) => name, None => "()".to_string() })
                                 .with_size(limb_position.transform.scale),
                             cur_limb_id,
                         )
@@ -57,7 +59,13 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                     result.joint_build_queue.push(
                         (
                             CreatureJointBuilder::new().with_generic_joint(
-                                GenericJointBuilder::new(JointAxesMask::all())
+                                GenericJointBuilder::new(edge.locked_axes)
+                                    .limits(JointAxis::X, edge.limit_axes[0])
+                                    .limits(JointAxis::Y, edge.limit_axes[1])
+                                    .limits(JointAxis::Z, edge.limit_axes[2])
+                                    .limits(JointAxis::AngX, edge.limit_axes[3])
+                                    .limits(JointAxis::AngY, edge.limit_axes[4])
+                                    .limits(JointAxis::AngZ, edge.limit_axes[5])
                                     .local_anchor1(limb_position.parent_local_anchor)
                                     .local_anchor2(limb_position.local_anchor)
                                     .local_basis1(prev_transform.rotation.inverse() * limb_position.transform.rotation)
@@ -107,6 +115,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                     (
                         CreatureLimbBundle::new()
                             .with_transform(params.root_transform)
+                            .with_name(match self.name.clone() { Some(name) => name, None => "()".to_string() })
                             .with_size(params.root_transform.scale),
                         cur_limb_id
                     )

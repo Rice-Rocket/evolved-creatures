@@ -53,11 +53,13 @@ fn builder_scene(
     let mut builder_graph = CreatureMorphologyGraph::new();
 
     let body = builder_graph.add_node(LimbNode {
+        name: None,
         density: 1.0,
         terminal_only: false,
         recursive_limit: 2,
     });
     let leg = builder_graph.add_node(LimbNode {
+        name: None,
         density: 1.0,
         terminal_only: false,
         recursive_limit: 6,
@@ -70,7 +72,7 @@ fn builder_scene(
             orientation: Quat::from_euler(EulerRot::YXZ, 0.8, 0.0, 0.0),
             scale: Vec3::ONE,
         },
-        locked_axes: LockedAxes::all(),
+        locked_axes: JointAxesMask::all(),
         limit_axes: [[1.0; 2]; 6],
     }, body, body);
     builder_graph.add_edge(LimbConnection {
@@ -80,7 +82,7 @@ fn builder_scene(
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
             scale: Vec3::new(0.8, 0.8, 0.8),
         },
-        locked_axes: LockedAxes::all(),
+        locked_axes: JointAxesMask::all(),
         limit_axes: [[1.0; 2]; 6],
     }, body, leg);
     builder_graph.add_edge(LimbConnection {
@@ -90,7 +92,7 @@ fn builder_scene(
             orientation: Quat::from_euler(EulerRot::YXZ, 0.0, 0.0, 0.0),
             scale: Vec3::new(0.8, 0.8, 0.8),
         },
-        locked_axes: LockedAxes::all(),
+        locked_axes: JointAxesMask::all(),
         limit_axes: [[1.0; 2]; 6],
     }, body, leg);
 

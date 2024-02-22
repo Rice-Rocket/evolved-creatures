@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LimbAttachFace {
     PosX, 
     NegX,
@@ -12,6 +12,25 @@ pub enum LimbAttachFace {
 }
 
 impl LimbAttachFace {
+    pub fn from_point(p: Vec3) -> Self {
+        if p.max_element() > p.min_element().abs() {
+            if p.x > p.y && p.x > p.z {
+                LimbAttachFace::PosX
+            } else if p.y > p.z {
+                LimbAttachFace::PosY
+            } else {
+                LimbAttachFace::PosZ
+            }
+        } else {
+            if p.x < p.y && p.x < p.z {
+                LimbAttachFace::NegX
+            } else if p.y < p.z {
+                LimbAttachFace::NegY
+            } else {
+                LimbAttachFace::NegZ
+            }
+        }
+    }
     pub fn direction(&self) -> Vec3 {
         match *self {
             LimbAttachFace::PosX => Vec3::X,
