@@ -3,6 +3,8 @@ pub mod joint;
 pub mod sensor;
 pub mod config;
 pub mod builder;
+pub mod effector;
+pub mod expr;
 
 
 use bevy::prelude::*;

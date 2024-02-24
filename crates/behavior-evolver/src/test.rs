@@ -66,7 +66,7 @@ fn behavior_evolver_scene(
         density: 1.0,
         terminal_only: false,
         recursive_limit: 1,
-    });
+        });
     let arm = builder_graph.add_node(LimbNode {
         name: Some("arm".to_string()),
         density: 1.0,

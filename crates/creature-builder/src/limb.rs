@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use bevy_rapier3d::prelude::*;
 use bevy::prelude::*;
 
-use super::{builder::placement::LimbAttachFace, sensor::{LimbCollisionSensor, ContactFilterTag, LimbCollisionType}};
+use super::sensor::{LimbCollisionSensor, ContactFilterTag, LimbCollisionType};
 
 
 
@@ -58,7 +60,7 @@ impl Default for CreatureLimbBundle {
         CreatureLimbBundle {
             limb: CreatureLimb,
             name: Name::new("()"),
-            sensor: LimbCollisionSensor { ty: LimbCollisionType::None, face: LimbAttachFace::PosY },
+            sensor: LimbCollisionSensor { faces: [LimbCollisionType::None; 6], entities: HashMap::new() },
             filter_tag: ContactFilterTag::LimbGroup,
 
             rb: RigidBody::Dynamic,

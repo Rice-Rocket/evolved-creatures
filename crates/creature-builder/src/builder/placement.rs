@@ -72,6 +72,16 @@ impl LimbAttachFace {
             _ => { panic!("Cannot index into LimbAttachFace with index {}", index) }
         }
     }
+    pub fn index(&self) -> usize {
+        match *self {
+            LimbAttachFace::PosX => 0,
+            LimbAttachFace::NegX => 1,
+            LimbAttachFace::PosY => 2,
+            LimbAttachFace::NegY => 3,
+            LimbAttachFace::PosZ => 4,
+            LimbAttachFace::NegZ => 5,
+        }
+    }
 }
 
 
