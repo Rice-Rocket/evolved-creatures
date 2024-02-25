@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Index};
 
-use bevy::{ecs::component::Component, math::{Quat, Vec3}};
-use bevy_rapier3d::{dynamics::{ImpulseJoint, JointAxis}, parry::math::Vector};
+use bevy::{ecs::component::Component, math::{Quat, Vec3}, transform::components::Transform};
+use bevy_rapier3d::dynamics::JointAxis;
 
 use super::{expr::Expr, builder::placement::LimbAttachFace, sensor::{LimbCollisionSensor, LimbCollisionType}};
 
@@ -36,9 +36,7 @@ impl Default for CreatureJointEffectors {
 
 #[derive(Clone)]
 pub struct CreatureJointEffector {
-    pub pos_expr: Expr,
-    pub stiffness_expr: Expr,
-    pub damping_expr: Expr,
+    pub expr: Expr,
 }
 
 
@@ -57,14 +55,14 @@ pub struct JointContext {
 }
 
 impl JointContext {
-    pub fn new(parent_contacts: &LimbCollisionSensor, child_contacts: &LimbCollisionSensor, joint: &ImpulseJoint) -> Self {
+    pub fn new(parent_contacts: &LimbCollisionSensor, child_contacts: &LimbCollisionSensor, parent_transform: &Transform, child_transform: &Transform) -> Self {
         let joint_axes = [
             0.0, 
             0.0, 
             0.0,
-            Self::calc_basis_diff(joint, *Vector::x_axis()),
-            Self::calc_basis_diff(joint, *Vector::y_axis()),
-            Self::calc_basis_diff(joint, *Vector::z_axis()),
+            Self::calc_basis_diff(parent_transform, child_transform, Vec3::X),
+            Self::calc_basis_diff(parent_transform, child_transform, Vec3::Y),
+            Self::calc_basis_diff(parent_transform, child_transform, Vec3::Z),
         ];
         Self {
             parent_contacts: LimbCollisionSensor { faces: parent_contacts.faces, entities: HashMap::new() },
@@ -72,11 +70,11 @@ impl JointContext {
             joint_axes,
         }
     }
-    fn calc_basis_diff(joint: &ImpulseJoint, axis: Vector<f32>) -> f32 {
-        let axis1 = joint.data.raw.local_frame1 * axis;
-        let axis2 = joint.data.raw.local_frame2 * axis;
-        let swing_1 = Self::quat_swing_twist(joint.data.local_basis1(), axis1.into()).1;
-        let swing_2 = Self::quat_swing_twist(joint.data.local_basis2(), axis2.into()).1;
+    fn calc_basis_diff(parent_transform: &Transform, child_transform: &Transform, axis: Vec3) -> f32 {
+        let axis1 = parent_transform.rotation * axis;
+        let axis2 = child_transform.rotation * axis;
+        let swing_1 = Self::quat_swing_twist(parent_transform.rotation, axis1).1;
+        let swing_2 = Self::quat_swing_twist(child_transform.rotation, axis2).1;
         swing_1.angle_between(swing_2)
     }
     /// Decompose the quaternion on to 2 parts.

@@ -45,34 +45,37 @@ pub fn main() {
 
 
 fn behavior_main(
-    mut joints: Query<(&mut ImpulseJoint, &CreatureJointEffectors, Entity), With<CreatureJoint>>,
-    contacts: Query<&LimbCollisionSensor, With<CreatureLimb>>,
+    mut joints: Query<(&ImpulseJoint, &CreatureJointEffectors, Entity), With<CreatureJoint>>,
+    mut limbs: Query<(&LimbCollisionSensor, &Transform, &mut ExternalImpulse), With<CreatureLimb>>,
 ) {
-    for (mut joint, effectors, entity) in joints.iter_mut() {
-        let parent_contacts = contacts.get(joint.parent).unwrap();
-        let child_contacts = contacts.get(entity).unwrap();
-        let context = JointContext::new(parent_contacts, child_contacts, joint.as_ref());
+    for (joint, effectors, entity) in joints.iter_mut() {
+        let parent_contacts = limbs.get(joint.parent).unwrap().0;
+        let child_contacts = limbs.get(entity).unwrap().0;
+        let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
+        let child_transform = limbs.get(entity).unwrap().1.clone();
+        let context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform);
 
         for (i, effector) in effectors.effectors.iter().enumerate() {
             let Some(effector) = effector else { continue };
-            let pos = effector.pos_expr.evaluate(&context);
-            let stiffness = effector.stiffness_expr.evaluate(&context);
-            let damping = effector.damping_expr.evaluate(&context);
+            let force = effector.expr.evaluate(&context);
 
-            let axis = match i {
-                0 => JointAxis::X,
-                1 => JointAxis::Y,
-                2 => JointAxis::Z,
-                3 => JointAxis::AngX,
-                4 => JointAxis::AngY,
-                5 => JointAxis::AngZ,
+            let (axis, rotational) = match i {
+                0 => (Vec3::X, false),
+                1 => (Vec3::Y, false),
+                2 => (Vec3::Z, false),
+                3 => (Vec3::X, true),
+                4 => (Vec3::Y, true),
+                5 => (Vec3::Z, true),
                 _ => unreachable!()
             };
-            
-            joint.data.set_motor_position(axis, pos.into(), stiffness.into(), damping.into());
-            joint.data.set_motor_velocity(axis, 0.0, 0.1);
-            joint.data.set_motor_max_force(axis, 100.0);
-            joint.data.set_motor_model(axis, MotorModel::ForceBased);
+
+            if rotational {
+                let rot_axis = child_transform.rotation * axis;
+
+                let torque = rot_axis * force.0;
+                limbs.get_mut(joint.parent).unwrap().2.torque_impulse = -torque;
+                limbs.get_mut(entity).unwrap().2.torque_impulse = torque;
+            }
         }
     }
 }
@@ -106,20 +109,11 @@ fn behavior_evolver_scene(
         terminal_only: false,
         recursive_limit: 2,
     });
-
-    let expr_1 = Expr {
-        root: ExprNode::Constant(ExprValue(1000.0)),
-    };
-    let expr_2 = Expr {
-        root: ExprNode::Constant(ExprValue(0.1)),
-    };
-    let expr_3 = Expr {
-        root: ExprNode::Add(Box::new(ExprNode::Constant(ExprValue(1.0))), Box::new(ExprNode::Value(JointContextElement::JointAxis { axis: JointAxis::AngZ }))),
+    let expr = Expr {
+        root: ExprNode::Mul(Box::new(ExprNode::Constant(ExprValue(1.0))), Box::new(ExprNode::Value(JointContextElement::JointAxis { axis: JointAxis::AngX }))),
     };
     let effector_1 = CreatureJointEffector {
-        pos_expr: expr_3.clone(),
-        stiffness_expr: expr_1,
-        damping_expr: expr_2,
+        expr: expr.clone(),
     };
 
     builder_graph.add_edge(LimbConnection {
@@ -153,7 +147,7 @@ fn behavior_evolver_scene(
         },
         locked_axes: JointAxesMask::LIN_AXES | JointAxesMask::ANG_Z | JointAxesMask::ANG_Y,
         limit_axes: [[0.0; 2], [0.0; 2], [0.0; 2], [-1.0, 1.0], [0.0; 2], [0.0; 2]],
-        effectors: CreatureJointEffectors::new([None, None, None, None, None, Some(effector_1)]),
+        effectors: CreatureJointEffectors::new([None, None, None, Some(effector_1), None, None]),
     }, arm, arm2);
 
     builder_graph.set_root(body);
