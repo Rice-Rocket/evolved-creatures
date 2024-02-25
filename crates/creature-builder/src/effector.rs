@@ -71,11 +71,10 @@ impl JointContext {
         }
     }
     fn calc_basis_diff(parent_transform: &Transform, child_transform: &Transform, axis: Vec3) -> f32 {
-        let axis1 = parent_transform.rotation * axis;
-        let axis2 = child_transform.rotation * axis;
-        let swing_1 = Self::quat_swing_twist(parent_transform.rotation, axis1).1;
-        let swing_2 = Self::quat_swing_twist(child_transform.rotation, axis2).1;
-        swing_1.angle_between(swing_2)
+        let axis1 = child_transform.rotation * axis;
+        let twist_1 = Self::quat_swing_twist(parent_transform.rotation, axis1).0;
+        let twist_2 = Self::quat_swing_twist(child_transform.rotation, axis1).0;
+        twist_1.angle_between(twist_2)
     }
     /// Decompose the quaternion on to 2 parts.
     /// 1. Twist - rotation around the "direction" vector
