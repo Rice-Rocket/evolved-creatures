@@ -2,13 +2,14 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, JointAxis};
 use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphResult, DirectedGraph, NodeID, EdgeID, DirectedGraphParameters}, queue::Queue, stack::Stack};
 
-use super::{super::{limb::CreatureLimbBundle, joint::CreatureJointBuilder}, placement::LimbRelativePlacement};
+use super::{super::{limb::CreatureLimbBundle, joint::CreatureJointBuilder, effector::CreatureJointEffectors}, placement::LimbRelativePlacement};
 
 
 pub struct LimbConnection {
     pub placement: LimbRelativePlacement,
     pub locked_axes: JointAxesMask,
     pub limit_axes: [[f32; 2]; 6],
+    pub effectors: CreatureJointEffectors,
 }
 
 impl EdgeData for LimbConnection {}
@@ -70,7 +71,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                                     .local_anchor2(limb_position.local_anchor)
                                     .local_basis1(prev_transform.rotation.inverse() * limb_position.transform.rotation)
                                     .build()
-                            ),
+                            ).with_effectors(edge.effectors.clone()),
                             cur_limb_id, prev_limb_id
                         )
                     );

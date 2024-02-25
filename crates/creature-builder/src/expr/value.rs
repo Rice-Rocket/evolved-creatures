@@ -1,6 +1,13 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-pub struct ExprValue(f32);
+#[derive(Clone)]
+pub struct ExprValue(pub f32);
+
+impl Into<f32> for ExprValue {
+    fn into(self) -> f32 {
+        self.0
+    }
+}
 
 
 macro_rules! impl_bin_op {

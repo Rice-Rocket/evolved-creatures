@@ -7,7 +7,7 @@ use bevy_editor_pls::prelude::*;
 pub mod creature_builder;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{CreatureBuilderConfig, ActiveCollisionTypes}, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::CreatureJointEffectors, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
 
 
 pub fn main() {
@@ -74,6 +74,7 @@ fn builder_scene(
         },
         locked_axes: JointAxesMask::all(),
         limit_axes: [[1.0; 2]; 6],
+        effectors: CreatureJointEffectors::default(),
     }, body, body);
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
@@ -84,6 +85,7 @@ fn builder_scene(
         },
         locked_axes: JointAxesMask::all(),
         limit_axes: [[1.0; 2]; 6],
+        effectors: CreatureJointEffectors::default(),
     }, body, leg);
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
@@ -94,6 +96,7 @@ fn builder_scene(
         },
         locked_axes: JointAxesMask::all(),
         limit_axes: [[1.0; 2]; 6],
+        effectors: CreatureJointEffectors::default(),
     }, body, leg);
 
     builder_graph.set_root(body);

@@ -7,7 +7,7 @@ use bevy_editor_pls::prelude::*;
 pub mod behavior_evolver;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::{CreatureJointEffector, CreatureJointEffectors, JointContext, JointContextElement}, expr::{node::ExprNode, value::ExprValue, Expr}, joint::CreatureJoint, limb::CreatureLimb, sensor::{ContactFilter, ContactFilterTag, LimbCollisionSensor}, CreatureBuilderPlugin};
 
 
 pub fn main() {
@@ -45,9 +45,36 @@ pub fn main() {
 
 
 fn behavior_main(
-
+    mut joints: Query<(&mut ImpulseJoint, &CreatureJointEffectors, Entity), With<CreatureJoint>>,
+    contacts: Query<&LimbCollisionSensor, With<CreatureLimb>>,
 ) {
+    for (mut joint, effectors, entity) in joints.iter_mut() {
+        let parent_contacts = contacts.get(joint.parent).unwrap();
+        let child_contacts = contacts.get(entity).unwrap();
+        let context = JointContext::new(parent_contacts, child_contacts, joint.as_ref());
 
+        for (i, effector) in effectors.effectors.iter().enumerate() {
+            let Some(effector) = effector else { continue };
+            let pos = effector.pos_expr.evaluate(&context);
+            let stiffness = effector.stiffness_expr.evaluate(&context);
+            let damping = effector.damping_expr.evaluate(&context);
+
+            let axis = match i {
+                0 => JointAxis::X,
+                1 => JointAxis::Y,
+                2 => JointAxis::Z,
+                3 => JointAxis::AngX,
+                4 => JointAxis::AngY,
+                5 => JointAxis::AngZ,
+                _ => unreachable!()
+            };
+            
+            joint.data.set_motor_position(axis, pos.into(), stiffness.into(), damping.into());
+            joint.data.set_motor_velocity(axis, 0.0, 0.1);
+            joint.data.set_motor_max_force(axis, 100.0);
+            joint.data.set_motor_model(axis, MotorModel::ForceBased);
+        }
+    }
 }
 
 
@@ -80,6 +107,21 @@ fn behavior_evolver_scene(
         recursive_limit: 2,
     });
 
+    let expr_1 = Expr {
+        root: ExprNode::Constant(ExprValue(1000.0)),
+    };
+    let expr_2 = Expr {
+        root: ExprNode::Constant(ExprValue(0.1)),
+    };
+    let expr_3 = Expr {
+        root: ExprNode::Add(Box::new(ExprNode::Constant(ExprValue(1.0))), Box::new(ExprNode::Value(JointContextElement::JointAxis { axis: JointAxis::AngZ }))),
+    };
+    let effector_1 = CreatureJointEffector {
+        pos_expr: expr_3.clone(),
+        stiffness_expr: expr_1,
+        damping_expr: expr_2,
+    };
+
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
             attach_face: LimbAttachFace::PosX,
@@ -89,6 +131,7 @@ fn behavior_evolver_scene(
         },
         locked_axes: JointAxesMask::LIN_AXES | JointAxesMask::ANG_X | JointAxesMask::ANG_Y,
         limit_axes: [[0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [-1.0, 1.0]],
+        effectors: CreatureJointEffectors::default(),
     }, body, arm);
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
@@ -99,6 +142,7 @@ fn behavior_evolver_scene(
         },
         locked_axes: JointAxesMask::LIN_AXES | JointAxesMask::ANG_X | JointAxesMask::ANG_Y,
         limit_axes: [[0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [0.0; 2], [-1.0, 1.0]],
+        effectors: CreatureJointEffectors::default(),
     }, body, arm);
     builder_graph.add_edge(LimbConnection {
         placement: LimbRelativePlacement {
@@ -109,6 +153,7 @@ fn behavior_evolver_scene(
         },
         locked_axes: JointAxesMask::LIN_AXES | JointAxesMask::ANG_Z | JointAxesMask::ANG_Y,
         limit_axes: [[0.0; 2], [0.0; 2], [0.0; 2], [-1.0, 1.0], [0.0; 2], [0.0; 2]],
+        effectors: CreatureJointEffectors::new([None, None, None, None, None, Some(effector_1)]),
     }, arm, arm2);
 
     builder_graph.set_root(body);
