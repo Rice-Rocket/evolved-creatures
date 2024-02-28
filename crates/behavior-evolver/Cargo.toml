@@ -1,3 +1,4 @@
+workspace = { members = ["mate-mutate"] }
 [package]
 name = "behavior-evolver"
 version = "0.1.0"

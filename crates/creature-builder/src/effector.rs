@@ -44,11 +44,13 @@ pub struct CreatureJointEffector {
 pub enum CreatureContextElement {
     LocalJoint { element: JointContextElement },
     GlobalJoint { element: JointContextElement, joint: usize },
+    Time,
 }
 
 pub struct CreatureContext {
     joints: Vec<JointContext>,
     current_joint: usize,
+    elapsed_time: f32,
 }
 
 impl CreatureContext {
@@ -56,6 +58,7 @@ impl CreatureContext {
         Self {
             joints: Vec::new(),
             current_joint: 0,
+            elapsed_time: 0.0,
         }
     }
     pub fn add_joint(&mut self, ctx: JointContext) {
@@ -67,6 +70,9 @@ impl CreatureContext {
     pub fn len(&self) -> usize {
         self.joints.len()
     }
+    pub fn set_time(&mut self, time: f32) {
+        self.elapsed_time = time;
+    }
     pub fn index(&self, index: CreatureContextElement) -> Option<f32> {
         match index {
             CreatureContextElement::LocalJoint { element } => {
@@ -75,6 +81,9 @@ impl CreatureContext {
             CreatureContextElement::GlobalJoint { element, joint } => {
                 let Some(ctx) = self.joints.get(joint) else { return None };
                 Some(ctx[element])
+            }
+            CreatureContextElement::Time => {
+                Some(self.elapsed_time)
             }
         }
     }

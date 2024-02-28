@@ -1,5 +1,3 @@
-use std::collections::{hash_map::Entry, HashMap};
-
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
@@ -9,7 +7,7 @@ use bevy_editor_pls::prelude::*;
 pub mod behavior_evolver;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::{CreatureContext, CreatureContextElement, CreatureJointEffector, CreatureJointEffectors, JointContext, JointContextElement}, expr::{node::ExprNode, value::ExprValue, Expr}, joint::CreatureJoint, limb::CreatureLimb, sensor::{ContactFilter, ContactFilterTag, LimbCollisionSensor}, CreatureBuilderPlugin, CreatureId};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::{CreatureContextElement, CreatureJointEffector, CreatureJointEffectors, JointContextElement}, expr::{node::ExprNode, value::ExprValue, Expr}, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin, CreatureId};
 
 
 pub fn main() {
@@ -23,7 +21,6 @@ pub fn main() {
         }))
 
         .add_systems(Startup, (setup, behavior_evolver_scene, setup_ground))
-        .add_systems(Update, behavior_main)
         .add_plugins(CreatureBuilderPlugin)
 
         .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
@@ -43,71 +40,6 @@ pub fn main() {
         })
 
         .run();
-}
-
-
-fn behavior_main(
-    mut joints: Query<(&CreatureJoint, &ImpulseJoint, &CreatureJointEffectors, Entity), With<CreatureJoint>>,
-    mut limbs: Query<(&LimbCollisionSensor, &Transform, &mut ExternalImpulse), With<CreatureLimb>>,
-) {
-    let mut creature_contexts = HashMap::new();
-    let mut joint_indices = HashMap::new();
-
-    for (i, (joint_data, joint, _effectors, entity)) in joints.iter().enumerate() {
-        match creature_contexts.entry(joint_data.creature) {
-            Entry::Vacant(entry) => {
-                let mut context = CreatureContext::new();
-                let parent_contacts = limbs.get(joint.parent).unwrap().0;
-                let child_contacts = limbs.get(entity).unwrap().0;
-                let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
-                let child_transform = limbs.get(entity).unwrap().1.clone();
-                let joint_context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform);
-                context.add_joint(joint_context);
-
-                joint_indices.insert(i, 0);
-                entry.insert(context);
-            },
-            Entry::Occupied(mut entry) => {
-                let parent_contacts = limbs.get(joint.parent).unwrap().0;
-                let child_contacts = limbs.get(entity).unwrap().0;
-                let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
-                let child_transform = limbs.get(entity).unwrap().1.clone();
-                let context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform); 
-
-                joint_indices.insert(i, entry.get().len());
-                entry.get_mut().add_joint(context);
-            }
-        }
-    }
-
-    for (i, (joint_data, joint, effectors, entity)) in joints.iter_mut().enumerate() {
-        creature_contexts.get_mut(&joint_data.creature).unwrap().set_current_joint(joint_indices[&i]);
-        let child_transform = limbs.get(entity).unwrap().1.clone();
-        let context = creature_contexts.get(&joint_data.creature).unwrap();
-        
-        for (i, effector) in effectors.effectors.iter().enumerate() {
-            let Some(effector) = effector else { continue };
-            let force = effector.expr.evaluate(&context);
-
-            let (axis, rotational) = match i {
-                0 => (Vec3::X, false),
-                1 => (Vec3::Y, false),
-                2 => (Vec3::Z, false),
-                3 => (Vec3::X, true),
-                4 => (Vec3::Y, true),
-                5 => (Vec3::Z, true),
-                _ => unreachable!()
-            };
-
-            if rotational {
-                let rot_axis = child_transform.rotation * axis;
-
-                let torque = rot_axis * force.0;
-                limbs.get_mut(joint.parent).unwrap().2.torque_impulse = -torque;
-                limbs.get_mut(entity).unwrap().2.torque_impulse = torque;
-            }
-        }
-    }
 }
 
 
