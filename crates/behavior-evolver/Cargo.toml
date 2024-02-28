@@ -1,4 +1,3 @@
-workspace = { members = ["mate-mutate"] }
 [package]
 name = "behavior-evolver"
 version = "0.1.0"
@@ -14,8 +13,14 @@ bevy_panorbit_camera.workspace = true
 bevy_screen_diagnostics.workspace = true
 bevy_editor_pls.workspace = true
 creature-builder.workspace = true
+mate-mutate.workspace = true
 
 [[test]]
-name = "behavior-evolver-test"
-path = "src/test.rs"
+name = "behavior_evolver"
+path = "tests/behavior_evolver.rs"
 harness = false
+
+[[test]]
+name = "mate_mutate"
+path = "tests/mate_mutate.rs"
+harness = true

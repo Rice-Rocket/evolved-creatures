@@ -12,7 +12,8 @@ members = [
     "crates/custom_bevy_editor/crates/bevy_editor_pls_core",
     "crates/custom_bevy_editor/crates/bevy_editor_pls_default_windows",
     "crates/data-structure-utils", 
-    "crates/behavior-evolver",
+    "crates/behavior-evolver", 
+    "crates/mate-mutate",
 ]
 
 [dependencies]
@@ -39,6 +40,7 @@ bevy_editor_pls_default_windows = { version = "0.6.0", path = "crates/custom_bev
 rigid-body-engine-3d = { path = "crates/rigid-body-engine-3d" }
 creature-builder = { path = "crates/creature-builder" }
 behavior-evolver = { path = "crates/behavior-evolver" }
+mate-mutate = { path = "crates/mate-mutate" }
 
 data-structure-utils = { path = "crates/data-structure-utils" }
 
