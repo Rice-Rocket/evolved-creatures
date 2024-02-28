@@ -3,12 +3,14 @@ use std::collections::HashMap;
 use bevy_rapier3d::prelude::*;
 use bevy::prelude::*;
 
-use super::sensor::{LimbCollisionSensor, ContactFilterTag, LimbCollisionType};
+use super::{CreatureId, sensor::{LimbCollisionSensor, ContactFilterTag, LimbCollisionType}};
 
 
 
 #[derive(Component, Clone)]
-pub struct CreatureLimb;
+pub struct CreatureLimb {
+    pub creature: CreatureId,
+}
 
 
 
@@ -58,7 +60,7 @@ pub struct CreatureLimbBundle {
 impl Default for CreatureLimbBundle {
     fn default() -> Self {
         CreatureLimbBundle {
-            limb: CreatureLimb,
+            limb: CreatureLimb { creature: CreatureId(0) },
             name: Name::new("()"),
             sensor: LimbCollisionSensor { faces: [LimbCollisionType::None; 6], entities: HashMap::new() },
             filter_tag: ContactFilterTag::LimbGroup,
@@ -122,6 +124,10 @@ impl CreatureLimbBundle {
     }
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Name::new(name);
+        self
+    }
+    pub fn with_creature(mut self, id: CreatureId) -> Self {
+        self.limb.creature = id;
         self
     }
     pub fn finish(mut self, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) -> Self {

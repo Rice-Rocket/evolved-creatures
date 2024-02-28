@@ -1,15 +1,17 @@
 use bevy::prelude::*;
 use bevy_rapier3d::dynamics::{GenericJoint, ImpulseJoint, JointAxis};
 
-use super::effector::{CreatureJointEffectors, CreatureJointEffector};
+use super::{CreatureId, effector::{CreatureJointEffectors, CreatureJointEffector}};
 
-
-#[derive(Component)]
-pub struct CreatureJoint;
+#[derive(Component, Clone)]
+pub struct CreatureJoint {
+    pub creature: CreatureId
+}
 
 
 #[derive(Clone)]
 pub struct CreatureJointBuilder {
+    pub(crate) joint: CreatureJoint,
     pub(crate) parent: Entity,
     pub(crate) data: GenericJoint,
     pub(crate) effectors: CreatureJointEffectors,
@@ -18,6 +20,7 @@ pub struct CreatureJointBuilder {
 impl Default for CreatureJointBuilder {
     fn default() -> Self {
         Self {
+            joint: CreatureJoint { creature: CreatureId(0) },
             parent: Entity::PLACEHOLDER,
             data: GenericJoint::default(),
             effectors: CreatureJointEffectors::default(),
@@ -45,7 +48,11 @@ impl CreatureJointBuilder {
         self.effectors = effectors;
         self
     }
+    pub fn with_creature(mut self, id: CreatureId) -> Self {
+        self.joint.creature = id;
+        self
+    }
     pub fn finish(self) -> (ImpulseJoint, CreatureJointEffectors, CreatureJoint) {
-        (ImpulseJoint::new(self.parent, self.data), self.effectors, CreatureJoint)
+        (ImpulseJoint::new(self.parent, self.data), self.effectors, self.joint)
     }
 }

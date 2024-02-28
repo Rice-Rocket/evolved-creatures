@@ -40,6 +40,47 @@ pub struct CreatureJointEffector {
 }
 
 
+#[derive(Clone)]
+pub enum CreatureContextElement {
+    LocalJoint { element: JointContextElement },
+    GlobalJoint { element: JointContextElement, joint: usize },
+}
+
+pub struct CreatureContext {
+    joints: Vec<JointContext>,
+    current_joint: usize,
+}
+
+impl CreatureContext {
+    pub fn new() -> Self {
+        Self {
+            joints: Vec::new(),
+            current_joint: 0,
+        }
+    }
+    pub fn add_joint(&mut self, ctx: JointContext) {
+        self.joints.push(ctx);
+    }
+    pub fn set_current_joint(&mut self, index: usize) {
+        self.current_joint = index;
+    }
+    pub fn len(&self) -> usize {
+        self.joints.len()
+    }
+    pub fn index(&self, index: CreatureContextElement) -> Option<f32> {
+        match index {
+            CreatureContextElement::LocalJoint { element } => {
+                Some(self.joints[self.current_joint][element])
+            },
+            CreatureContextElement::GlobalJoint { element, joint } => {
+                let Some(ctx) = self.joints.get(joint) else { return None };
+                Some(ctx[element])
+            }
+        }
+    }
+}
+
+
 #[derive(Clone, Copy)]
 pub enum JointContextElement {
     ParentContact { face: LimbAttachFace },
@@ -48,6 +89,7 @@ pub enum JointContextElement {
 }
 
 
+#[derive(Clone)]
 pub struct JointContext {
     parent_contacts: LimbCollisionSensor,
     child_contacts: LimbCollisionSensor,

@@ -4,7 +4,7 @@ pub mod value;
 use node::ExprNode;
 use value::ExprValue;
 
-use super::effector::JointContext;
+use super::effector::CreatureContext;
 
 
 /* 
@@ -24,7 +24,7 @@ pub struct Expr {
 }
 
 impl Expr {
-    pub fn evaluate(&self, context: &JointContext) -> ExprValue {
+    pub fn evaluate(&self, context: &CreatureContext) -> ExprValue {
         ExprNode::visit(Box::new(self.root.clone()), context)
     }
 }

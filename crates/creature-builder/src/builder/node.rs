@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, JointAxis};
 use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphResult, DirectedGraph, NodeID, EdgeID, DirectedGraphParameters}, queue::Queue, stack::Stack};
 
-use super::{super::{limb::CreatureLimbBundle, joint::CreatureJointBuilder, effector::CreatureJointEffectors}, placement::LimbRelativePlacement};
+use super::{super::{CreatureId, limb::CreatureLimbBundle, joint::CreatureJointBuilder, effector::CreatureJointEffectors}, placement::LimbRelativePlacement};
 
 
 pub struct LimbConnection {
@@ -165,6 +165,7 @@ pub struct BuildResult {
     transforms: HashMap<NodeID, Stack<Transform>>,
     node_limb_ids: HashMap<NodeID, Stack<usize>>,
     current_limb_id: usize,
+    creature_id: CreatureId,
 }
 
 impl DirectedGraphResult for BuildResult {
@@ -176,6 +177,7 @@ impl DirectedGraphResult for BuildResult {
             transforms: HashMap::new(),
             current_limb_id: 0,
             node_limb_ids: HashMap::new(),
+            creature_id: CreatureId(0),
         }
     }
 }
@@ -185,7 +187,10 @@ impl BuildResult {
         let mut entity_ids = HashMap::new();
         while let Some(limb) = self.limb_build_queue.pop() {
             let id = commands.spawn(
-                limb.0.with_color(Color::rgba(1.0, 1.0, 1.0, 0.8)).finish(meshes, materials)
+                limb.0
+                    .with_color(Color::rgba(1.0, 1.0, 1.0, 0.8))
+                    .with_creature(self.creature_id)
+                    .finish(meshes, materials)
             ).id();
             entity_ids.insert(limb.1, id);
         }
@@ -194,7 +199,7 @@ impl BuildResult {
             let parent = entity_ids.get(&joint.2).unwrap();
             commands
                 .entity(*entity_ids.get(&joint.1).unwrap())
-                .insert(joint.0.with_parent(*parent).finish());
+                .insert(joint.0.with_parent(*parent).with_creature(self.creature_id).finish());
         }
     }
 }
@@ -207,4 +212,30 @@ pub struct BuildParameters {
 impl DirectedGraphParameters for BuildParameters {}
 
 
-pub type CreatureMorphologyGraph = DirectedGraph<LimbNode, LimbConnection, BuildResult, BuildParameters>;
+pub struct CreatureMorphologyGraph {
+    graph: DirectedGraph<LimbNode, LimbConnection, BuildResult, BuildParameters>,
+    creature: CreatureId,
+}
+
+impl CreatureMorphologyGraph {
+    pub fn new(creature: CreatureId) -> Self {
+        Self {
+            graph: DirectedGraph::new(),
+            creature
+        }
+    }
+    pub fn add_node(&mut self, node: LimbNode) -> NodeID {
+        self.graph.add_node(node)
+    }
+    pub fn add_edge(&mut self, edge: LimbConnection, from: NodeID, to: NodeID) -> Option<EdgeID> {
+        self.graph.add_edge(edge, from, to)
+    }
+    pub fn set_root(&mut self, id: NodeID) {
+        self.graph.set_root(id)
+    }
+    pub fn evaluate(&self, params: BuildParameters) -> BuildResult {
+        let mut res = self.graph.evaluate(params);
+        res.creature_id = self.creature;
+        res
+    }
+}

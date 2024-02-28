@@ -7,7 +7,7 @@ use bevy_editor_pls::prelude::*;
 pub mod creature_builder;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::CreatureJointEffectors, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::CreatureJointEffectors, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin, CreatureId};
 
 
 pub fn main() {
@@ -50,7 +50,7 @@ fn builder_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let mut builder_graph = CreatureMorphologyGraph::new();
+    let mut builder_graph = CreatureMorphologyGraph::new(CreatureId(0));
 
     let body = builder_graph.add_node(LimbNode {
         name: None,

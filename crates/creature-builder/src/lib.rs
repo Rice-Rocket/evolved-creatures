@@ -12,6 +12,10 @@ use config::CreatureBuilderConfig;
 use sensor::update_sensor_status;
 
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct CreatureId(pub usize);
+
+
 
 pub struct CreatureBuilderPlugin;
 

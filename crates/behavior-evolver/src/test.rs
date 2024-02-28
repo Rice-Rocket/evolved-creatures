@@ -1,3 +1,5 @@
+use std::collections::{hash_map::Entry, HashMap};
+
 use bevy::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
@@ -7,7 +9,7 @@ use bevy_editor_pls::prelude::*;
 pub mod behavior_evolver;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::{CreatureJointEffector, CreatureJointEffectors, JointContext, JointContextElement}, expr::{node::ExprNode, value::ExprValue, Expr}, joint::CreatureJoint, limb::CreatureLimb, sensor::{ContactFilter, ContactFilterTag, LimbCollisionSensor}, CreatureBuilderPlugin};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::{CreatureContext, CreatureContextElement, CreatureJointEffector, CreatureJointEffectors, JointContext, JointContextElement}, expr::{node::ExprNode, value::ExprValue, Expr}, joint::CreatureJoint, limb::CreatureLimb, sensor::{ContactFilter, ContactFilterTag, LimbCollisionSensor}, CreatureBuilderPlugin, CreatureId};
 
 
 pub fn main() {
@@ -45,16 +47,44 @@ pub fn main() {
 
 
 fn behavior_main(
-    mut joints: Query<(&ImpulseJoint, &CreatureJointEffectors, Entity), With<CreatureJoint>>,
+    mut joints: Query<(&CreatureJoint, &ImpulseJoint, &CreatureJointEffectors, Entity), With<CreatureJoint>>,
     mut limbs: Query<(&LimbCollisionSensor, &Transform, &mut ExternalImpulse), With<CreatureLimb>>,
 ) {
-    for (joint, effectors, entity) in joints.iter_mut() {
-        let parent_contacts = limbs.get(joint.parent).unwrap().0;
-        let child_contacts = limbs.get(entity).unwrap().0;
-        let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
-        let child_transform = limbs.get(entity).unwrap().1.clone();
-        let context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform);
+    let mut creature_contexts = HashMap::new();
+    let mut joint_indices = HashMap::new();
 
+    for (i, (joint_data, joint, _effectors, entity)) in joints.iter().enumerate() {
+        match creature_contexts.entry(joint_data.creature) {
+            Entry::Vacant(entry) => {
+                let mut context = CreatureContext::new();
+                let parent_contacts = limbs.get(joint.parent).unwrap().0;
+                let child_contacts = limbs.get(entity).unwrap().0;
+                let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
+                let child_transform = limbs.get(entity).unwrap().1.clone();
+                let joint_context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform);
+                context.add_joint(joint_context);
+
+                joint_indices.insert(i, 0);
+                entry.insert(context);
+            },
+            Entry::Occupied(mut entry) => {
+                let parent_contacts = limbs.get(joint.parent).unwrap().0;
+                let child_contacts = limbs.get(entity).unwrap().0;
+                let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
+                let child_transform = limbs.get(entity).unwrap().1.clone();
+                let context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform); 
+
+                joint_indices.insert(i, entry.get().len());
+                entry.get_mut().add_joint(context);
+            }
+        }
+    }
+
+    for (i, (joint_data, joint, effectors, entity)) in joints.iter_mut().enumerate() {
+        creature_contexts.get_mut(&joint_data.creature).unwrap().set_current_joint(joint_indices[&i]);
+        let child_transform = limbs.get(entity).unwrap().1.clone();
+        let context = creature_contexts.get(&joint_data.creature).unwrap();
+        
         for (i, effector) in effectors.effectors.iter().enumerate() {
             let Some(effector) = effector else { continue };
             let force = effector.expr.evaluate(&context);
@@ -89,14 +119,14 @@ fn behavior_evolver_scene(
 ) {
     use std::f32::consts::FRAC_PI_2;
 
-    let mut builder_graph = CreatureMorphologyGraph::new();
+    let mut builder_graph = CreatureMorphologyGraph::new(CreatureId(0));
 
     let body = builder_graph.add_node(LimbNode {
         name: Some("body".to_string()),
         density: 1.0,
         terminal_only: false,
         recursive_limit: 1,
-        });
+    });
     let arm = builder_graph.add_node(LimbNode {
         name: Some("arm".to_string()),
         density: 1.0,
@@ -110,7 +140,13 @@ fn behavior_evolver_scene(
         recursive_limit: 2,
     });
     let expr = Expr {
-        root: ExprNode::Mul(Box::new(ExprNode::Constant(ExprValue(1.0))), Box::new(ExprNode::Value(JointContextElement::JointAxis { axis: JointAxis::AngX }))),
+        root: ExprNode::Add(
+            Box::new(ExprNode::Mul(
+                Box::new(ExprNode::Constant(ExprValue(1.0))), 
+                Box::new(ExprNode::Value(CreatureContextElement::LocalJoint { element: JointContextElement::JointAxis { axis: JointAxis::AngX } }))
+            )),
+            Box::new(ExprNode::Value(CreatureContextElement::GlobalJoint { element: JointContextElement::ChildContact { face: LimbAttachFace::PosY }, joint: 2 }))
+        ),
     };
     let effector_1 = CreatureJointEffector {
         expr: expr.clone(),
