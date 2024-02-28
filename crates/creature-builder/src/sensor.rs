@@ -3,7 +3,7 @@ use std::{collections::HashMap, ops::{Index, IndexMut}};
 use bevy::{prelude::*, ecs::system::SystemParam};
 use bevy_rapier3d::prelude::*;
 
-use super::{config::{ActiveCollisionTypes, CreatureBuilderConfig}, builder::placement::LimbAttachFace};
+use crate::{config::{ActiveCollisionTypes, CreatureBuilderConfig}, builder::placement::LimbAttachFace};
 
 
 #[derive(PartialEq, Eq, Clone, Copy, Component)]

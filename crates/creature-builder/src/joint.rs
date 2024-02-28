@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::dynamics::{GenericJoint, ImpulseJoint, JointAxis};
 
-use super::{CreatureId, effector::{CreatureJointEffectors, CreatureJointEffector}};
+use crate::{CreatureId, effector::{CreatureJointEffectors, CreatureJointEffector}};
 
 #[derive(Component, Clone)]
 pub struct CreatureJoint {

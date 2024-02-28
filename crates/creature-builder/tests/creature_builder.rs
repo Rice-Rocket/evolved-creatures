@@ -3,14 +3,11 @@ use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_editor_pls::prelude::*;
 
-#[path = "./lib.rs"]
-pub mod creature_builder;
-
 use bevy_rapier3d::prelude::*;
 use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::CreatureJointEffectors, joint::CreatureJointBuilder, limb::CreatureLimbBundle, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin, CreatureId};
 
 
-pub fn main() {
+fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {

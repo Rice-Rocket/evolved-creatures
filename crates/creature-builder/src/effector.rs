@@ -3,7 +3,7 @@ use std::{collections::HashMap, ops::Index};
 use bevy::{ecs::component::Component, math::{Quat, Vec3}, transform::components::Transform};
 use bevy_rapier3d::dynamics::JointAxis;
 
-use super::{expr::Expr, builder::placement::LimbAttachFace, sensor::{LimbCollisionSensor, LimbCollisionType}};
+use crate::{expr::Expr, builder::placement::LimbAttachFace, sensor::{LimbCollisionSensor, LimbCollisionType}};
 
 
 #[derive(Component, Clone)]

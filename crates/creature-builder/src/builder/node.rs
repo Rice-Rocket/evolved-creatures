@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, JointAxis};
 use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphResult, DirectedGraph, NodeID, EdgeID, DirectedGraphParameters}, queue::Queue, stack::Stack};
 
-use super::{super::{CreatureId, limb::CreatureLimbBundle, joint::CreatureJointBuilder, effector::CreatureJointEffectors}, placement::LimbRelativePlacement};
+use crate::{CreatureId, limb::CreatureLimbBundle, joint::CreatureJointBuilder, effector::CreatureJointEffectors, builder::placement::LimbRelativePlacement};
 
 
 pub struct LimbConnection {
