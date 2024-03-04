@@ -18,7 +18,7 @@ A mutation can change the constant or replace it with a new expr
 */
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Expr {
     pub root: ExprNode,
 }

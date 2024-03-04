@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ExprValue(pub f32);
 
 impl Into<f32> for ExprValue {

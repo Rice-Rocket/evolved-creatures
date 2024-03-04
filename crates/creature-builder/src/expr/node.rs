@@ -1,7 +1,7 @@
 use crate::{effector::{CreatureContext, CreatureContextElement}, expr::value::ExprValue};
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ExprNode {
     Value(CreatureContextElement),
     Constant(ExprValue),

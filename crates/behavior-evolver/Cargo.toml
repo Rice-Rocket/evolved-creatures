@@ -13,7 +13,8 @@ bevy_panorbit_camera.workspace = true
 bevy_screen_diagnostics.workspace = true
 bevy_editor_pls.workspace = true
 creature-builder.workspace = true
-mate-mutate.workspace = true
+rand = "*"
+rand_distr = "*"
 
 [[test]]
 name = "behavior_evolver"

@@ -5,6 +5,7 @@ use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphR
 use crate::{CreatureId, limb::CreatureLimbBundle, joint::CreatureJointBuilder, effector::CreatureJointEffectors, builder::placement::LimbRelativePlacement};
 
 
+#[derive(Debug)]
 pub struct LimbConnection {
     pub placement: LimbRelativePlacement,
     pub locked_axes: JointAxesMask,
@@ -15,6 +16,7 @@ pub struct LimbConnection {
 impl EdgeData for LimbConnection {}
 
 
+#[derive(Debug)]
 pub struct LimbNode {
     pub name: Option<String>,
     pub density: f32,

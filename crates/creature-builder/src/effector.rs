@@ -6,7 +6,7 @@ use bevy_rapier3d::dynamics::JointAxis;
 use crate::{expr::Expr, builder::placement::LimbAttachFace, sensor::{LimbCollisionSensor, LimbCollisionType}};
 
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct CreatureJointEffectors {
     pub effectors: [Option<CreatureJointEffector>; 6],
 }
@@ -34,13 +34,13 @@ impl Default for CreatureJointEffectors {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CreatureJointEffector {
     pub expr: Expr,
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum CreatureContextElement {
     LocalJoint { element: JointContextElement },
     GlobalJoint { element: JointContextElement, joint: usize },
@@ -90,7 +90,7 @@ impl CreatureContext {
 }
 
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum JointContextElement {
     ParentContact { face: LimbAttachFace },
     ChildContact { face: LimbAttachFace },
