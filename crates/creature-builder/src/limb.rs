@@ -7,14 +7,14 @@ use crate::{CreatureId, sensor::{LimbCollisionSensor, ContactFilterTag, LimbColl
 
 
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct CreatureLimb {
     pub creature: CreatureId,
 }
 
 
 
-#[derive(Bundle, Clone)]
+#[derive(Bundle, Clone, Debug)]
 pub struct CreatureLimbBundle {
     pub(crate) limb: CreatureLimb,
     pub(crate) name: Name,
@@ -32,7 +32,6 @@ pub struct CreatureLimbBundle {
 
     // Collider
     pub(crate) collider: Collider,
-    // pub sensor: Sensor,
     pub(crate) friction: Friction,
     pub(crate) restitution: Restitution,
     pub(crate) mass: ColliderMassProperties,

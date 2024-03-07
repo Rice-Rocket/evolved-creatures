@@ -3,13 +3,13 @@ use bevy_rapier3d::dynamics::{GenericJoint, ImpulseJoint, JointAxis};
 
 use crate::{CreatureId, effector::{CreatureJointEffectors, CreatureJointEffector}};
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct CreatureJoint {
     pub creature: CreatureId
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CreatureJointBuilder {
     pub(crate) joint: CreatureJoint,
     pub(crate) parent: Entity,

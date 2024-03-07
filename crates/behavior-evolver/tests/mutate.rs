@@ -1,7 +1,8 @@
-use behavior_evolver::mutate::{node::{MutateNode, MutateNodeParams}, MutateFieldParams, edge::{MutateEdgeParams, MutateEdge}};
+use behavior_evolver::mutate::{node::{MutateNode, MutateNodeParams}, MutateFieldParams, edge::{MutateEdgeParams, MutateEdge}, MutateMorphology, MutateMorphologyParams, RandomMorphologyParams};
 use bevy::math::{Vec2, Quat, Vec3};
 use bevy_rapier3d::dynamics::JointAxesMask;
-use creature_builder::{builder::{node::{LimbNode, LimbConnection}, placement::{LimbRelativePlacement, LimbAttachFace}}, effector::CreatureJointEffectors};
+use creature_builder::{builder::{node::{LimbNode, LimbConnection, CreatureMorphologyGraph}, placement::{LimbRelativePlacement, LimbAttachFace}}, effector::CreatureJointEffectors, CreatureId};
+use rand::thread_rng;
 
 
 #[test]
@@ -29,7 +30,7 @@ fn mutate_edge() -> Result<(), rand_distr::NormalError> {
     let mut rng = rand::thread_rng();
     let mut edge = LimbConnection {
         placement: LimbRelativePlacement { attach_face: LimbAttachFace::PosX, attach_position: Vec2::new(0.5, -0.3), orientation: Quat::from_rotation_x(0.5), scale: Vec3::ONE }, 
-        locked_axes: JointAxesMask::ANG_X,
+        locked_axes: JointAxesMask::LIN_AXES,
         limit_axes: [[0.5, 0.5]; 6],
         effectors: CreatureJointEffectors::new([
             None,
@@ -56,4 +57,19 @@ fn mutate_edge() -> Result<(), rand_distr::NormalError> {
     }
 
     Ok(())
+}
+
+
+#[test]
+fn mutate_morph() {
+    let mut rng = thread_rng();
+    let mut morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
+    let mut params = MutateMorphologyParams::default();
+
+    let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
+
+    for _ in 0..20 {
+        mutate.mutate();
+        println!("{:?}", mutate.inner().edges_len());
+    }
 }

@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Queue<T: Clone> {
     queue: Vec<T>,
 }

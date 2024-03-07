@@ -1,6 +1,8 @@
-use bevy::{prelude::*, utils::HashMap};
+use std::collections::HashMap;
+
+use bevy::prelude::*;
 use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, JointAxis};
-use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphResult, DirectedGraph, NodeID, EdgeID, DirectedGraphParameters}, queue::Queue, stack::Stack};
+use data_structure_utils::{graphs::directed::{NodeData, EdgeData, DirectedGraphResult, DirectedGraph, NodeID, EdgeID, DirectedGraphParameters, DirectedGraphNode, DirectedGraphEdge}, queue::Queue, stack::Stack};
 
 use crate::{CreatureId, limb::CreatureLimbBundle, joint::CreatureJointBuilder, effector::CreatureJointEffectors, builder::placement::LimbRelativePlacement};
 
@@ -159,7 +161,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
 }
 
 
-#[derive(Resource)]
+#[derive(Resource, Debug)]
 pub struct BuildResult {
     pub limb_build_queue: Queue<(CreatureLimbBundle, usize)>,
     pub joint_build_queue: Queue<(CreatureJointBuilder, usize, usize)>,
@@ -207,6 +209,7 @@ impl BuildResult {
 }
 
 
+#[derive(Debug)]
 pub struct BuildParameters {
     pub root_transform: Transform,
 }
@@ -214,9 +217,10 @@ pub struct BuildParameters {
 impl DirectedGraphParameters for BuildParameters {}
 
 
+#[derive(Debug)]
 pub struct CreatureMorphologyGraph {
-    graph: DirectedGraph<LimbNode, LimbConnection, BuildResult, BuildParameters>,
-    creature: CreatureId,
+    pub graph: DirectedGraph<LimbNode, LimbConnection, BuildResult, BuildParameters>,
+    pub creature: CreatureId,
 }
 
 impl CreatureMorphologyGraph {
@@ -232,8 +236,44 @@ impl CreatureMorphologyGraph {
     pub fn add_edge(&mut self, edge: LimbConnection, from: NodeID, to: NodeID) -> Option<EdgeID> {
         self.graph.add_edge(edge, from, to)
     }
+    pub fn remove_node(&mut self, node: NodeID) -> Option<LimbNode> {
+        self.graph.remove_node(node)
+    }
+    pub fn remove_edge(&mut self, edge: EdgeID) -> Option<LimbConnection> {
+        self.graph.remove_edge(edge)
+    }
     pub fn set_root(&mut self, id: NodeID) {
         self.graph.set_root(id)
+    }
+    pub fn nodes_len(&self) -> usize {
+        self.graph.nodes.len()
+    }
+    pub fn edges_len(&self) -> usize {
+        self.graph.edges.len()
+    }
+    pub fn nodes(&self) -> Vec<&DirectedGraphNode<LimbNode, LimbConnection, BuildResult, BuildParameters>> {
+        self.graph.nodes.values().collect()
+    }
+    pub fn edges(&self) -> Vec<&DirectedGraphEdge<LimbConnection>> {
+        self.graph.edges.values().collect()
+    }
+    pub fn nodes_mut(&mut self) -> Vec<&mut DirectedGraphNode<LimbNode, LimbConnection, BuildResult, BuildParameters>> {
+        self.graph.nodes.values_mut().collect()
+    }
+    pub fn edges_mut(&mut self) -> Vec<&mut DirectedGraphEdge<LimbConnection>> {
+        self.graph.edges.values_mut().collect()
+    }
+    pub fn node_ids(&self) -> Vec<NodeID> {
+        self.graph.nodes.keys().map(|v| *v).collect()
+    }
+    pub fn edge_ids(&self) -> Vec<EdgeID> {
+        self.graph.edges.keys().map(|v| *v).collect()
+    }
+    pub fn nodes_map(&self) -> &HashMap<NodeID, DirectedGraphNode<LimbNode, LimbConnection, BuildResult, BuildParameters>> {
+        &self.graph.nodes
+    }
+    pub fn edges_map(&self) -> &HashMap<EdgeID, DirectedGraphEdge<LimbConnection>> {
+        &self.graph.edges
     }
     pub fn evaluate(&self, params: BuildParameters) -> BuildResult {
         let mut res = self.graph.evaluate(params);

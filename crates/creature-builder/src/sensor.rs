@@ -6,14 +6,14 @@ use bevy_rapier3d::prelude::*;
 use crate::{config::{ActiveCollisionTypes, CreatureBuilderConfig}, builder::placement::LimbAttachFace};
 
 
-#[derive(PartialEq, Eq, Clone, Copy, Component)]
+#[derive(PartialEq, Eq, Clone, Copy, Component, Debug)]
 pub enum ContactFilterTag {
     GroundGroup,
     LimbGroup
 }
 
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct LimbCollisionSensor {
     pub(crate) faces: [LimbCollisionType; 6],
     pub(crate) entities: HashMap<Entity, LimbAttachFace>,
@@ -33,7 +33,7 @@ impl IndexMut<LimbAttachFace> for LimbCollisionSensor {
 }
 
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum LimbCollisionType {
     SelfCollision,
     GroundCollision,

@@ -13,6 +13,7 @@ bevy_panorbit_camera.workspace = true
 bevy_screen_diagnostics.workspace = true
 bevy_editor_pls.workspace = true
 creature-builder.workspace = true
+data-structure-utils.workspace = true
 rand = "*"
 rand_distr = "*"
 
