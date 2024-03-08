@@ -105,8 +105,8 @@ impl<'a> MutateEdge<'a> {
             self.edge.placement.attach_face = LimbAttachFace::from_index(self.rng.gen_range(0usize..6usize));
         };
         if self.params.placement_pos.change(&mut self.rng) {
-            self.edge.placement.attach_position.x = (self.edge.placement.attach_position.x + self.params.placement_pos.sample(&mut self.rng)).clamp(-1.0, 1.0);
-            self.edge.placement.attach_position.y = (self.edge.placement.attach_position.y + self.params.placement_pos.sample(&mut self.rng)).clamp(-1.0, 1.0);
+            self.edge.placement.attach_position.x = self.params.placement_pos.mutate(&mut self.rng, self.edge.placement.attach_position.x);
+            self.edge.placement.attach_position.y = self.params.placement_pos.mutate(&mut self.rng, self.edge.placement.attach_position.y);
         };
         if self.params.placement_rot.change(&mut self.rng) {
             let (from_axis, from_angle) = self.edge.placement.orientation.to_axis_angle();
@@ -120,14 +120,14 @@ impl<'a> MutateEdge<'a> {
 
         for i in 0..3 {
             if self.params.placement_scale.change_scaled(&mut self.rng, 3.0) {
-                self.edge.placement.scale[i] += self.params.placement_scale.sample(&mut self.rng);
+                self.edge.placement.scale[i] = self.params.placement_scale.mutate(&mut self.rng, self.edge.placement.scale[i]);
             };
         }
 
         for i in 0..6 {
             for j in 0..2 {
                 if self.params.limit_axes.change_scaled(&mut self.rng, 12.0) {
-                    self.edge.limit_axes[i][j] += self.params.limit_axes.sample(&mut self.rng);
+                    self.edge.limit_axes[i][j] = self.params.limit_axes.mutate(&mut self.rng, self.edge.limit_axes[i][j]);
                 };
             }
         }

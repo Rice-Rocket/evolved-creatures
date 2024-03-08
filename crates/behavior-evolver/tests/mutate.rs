@@ -1,16 +1,17 @@
 use behavior_evolver::mutate::{node::{MutateNode, MutateNodeParams}, MutateFieldParams, edge::{MutateEdgeParams, MutateEdge}, MutateMorphology, MutateMorphologyParams, RandomMorphologyParams};
 use bevy::math::{Vec2, Quat, Vec3};
 use bevy_rapier3d::dynamics::JointAxesMask;
-use creature_builder::{builder::{node::{LimbNode, LimbConnection, CreatureMorphologyGraph}, placement::{LimbRelativePlacement, LimbAttachFace}}, effector::CreatureJointEffectors, CreatureId};
-use rand::thread_rng;
+use creature_builder::{builder::{node::{LimbNode, LimbConnection}, placement::{LimbRelativePlacement, LimbAttachFace}}, effector::CreatureJointEffectors, CreatureId};
 
 
 #[test]
 fn mutate_node() -> Result<(), rand_distr::NormalError> {
     let mut rng = rand::thread_rng();
-    let mut node = LimbNode { name: None, density: 3.0, terminal_only: false, recursive_limit: 2 };
+    let mut node = LimbNode { name: None, density: 3.0, friction: 0.3, restitution: 0.0, terminal_only: false, recursive_limit: 2 };
     let params = MutateNodeParams {
         density: MutateFieldParams::new(1.0, 0.0, 0.1)?,
+        friction: MutateFieldParams::new(0.1, 0.0, 0.1)?,
+        restitution: MutateFieldParams::new(0.1, 0.0, 0.5)?,
         recursive: MutateFieldParams::new(0.5, 0.0, 0.75)?,
         terminal_freq: 0.3,
     };
@@ -62,7 +63,7 @@ fn mutate_edge() -> Result<(), rand_distr::NormalError> {
 
 #[test]
 fn mutate_morph() {
-    let mut rng = thread_rng();
+    let mut rng = rand::thread_rng();
     let mut morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
     let mut params = MutateMorphologyParams::default();
 

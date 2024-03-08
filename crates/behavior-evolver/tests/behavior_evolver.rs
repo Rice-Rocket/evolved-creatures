@@ -53,18 +53,24 @@ fn behavior_evolver_scene(
     let body = builder_graph.add_node(LimbNode {
         name: Some("body".to_string()),
         density: 1.0,
+        friction: 0.3,
+        restitution: 0.0,
         terminal_only: false,
         recursive_limit: 1,
     });
     let arm = builder_graph.add_node(LimbNode {
         name: Some("arm".to_string()),
         density: 1.0,
+        friction: 0.3,
+        restitution: 0.0,
         terminal_only: false,
         recursive_limit: 2,
     });
     let arm2 = builder_graph.add_node(LimbNode {
         name: Some("hand".to_string()),
         density: 1.0,
+        friction: 0.3,
+        restitution: 0.0,
         terminal_only: false,
         recursive_limit: 2,
     });

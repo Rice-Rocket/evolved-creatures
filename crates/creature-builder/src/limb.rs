@@ -129,6 +129,18 @@ impl CreatureLimbBundle {
         self.limb.creature = id;
         self
     }
+    pub fn with_density(mut self, density: f32) -> Self {
+        self.mass = ColliderMassProperties::Density(density);
+        self
+    }
+    pub fn with_friction(mut self, friction: f32) -> Self {
+        self.friction.coefficient = friction;
+        self
+    }
+    pub fn with_restitution(mut self, restitution: f32) -> Self {
+        self.restitution.coefficient = restitution;
+        self
+    }
     pub fn finish(mut self, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) -> Self {
         self.mesh = meshes.add(Mesh::from(shape::Box::new(2.0, 2.0, 2.0)));
         self.material = materials.add(StandardMaterial::from(self.color));

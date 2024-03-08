@@ -52,12 +52,16 @@ fn builder_scene(
     let body = builder_graph.add_node(LimbNode {
         name: None,
         density: 1.0,
+        friction: 0.3,
+        restitution: 0.0,
         terminal_only: false,
         recursive_limit: 2,
     });
     let leg = builder_graph.add_node(LimbNode {
         name: None,
         density: 1.0,
+        friction: 0.3,
+        restitution: 0.0,
         terminal_only: false,
         recursive_limit: 6,
     });

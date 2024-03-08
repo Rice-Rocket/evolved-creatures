@@ -1,7 +1,7 @@
 use std::{collections::HashSet, ops::Range};
 
 use creature_builder::{builder::node::CreatureMorphologyGraph, CreatureId};
-use data_structure_utils::graphs::directed::DirectedGraph;
+use data_structure_utils::graphs::directed::{DirectedGraph, NodeID};
 use rand::{rngs::ThreadRng, Rng};
 use rand_distr::Normal;
 
@@ -16,6 +16,8 @@ pub struct MutateFieldParams {
     pub f: f32,
     /// The distribution to sample when chosing a new value
     pub d: Normal<f32>,
+    /// The range, if any, to clamp the result
+    pub range: Option<Range<f32>>,
 }
 
 impl MutateFieldParams {
@@ -23,13 +25,27 @@ impl MutateFieldParams {
         Ok(Self {
             f: freq,
             d: Normal::new(mean, std_dev)?,
+            range: None,
         })
+    }
+    pub fn in_range(mut self, range: Range<f32>) -> Self {
+        self.range = Some(range);
+        self
     }
     pub fn set_scale(&mut self, inv_scale: f32) {
         self.f *= inv_scale;
     }
     pub fn sample(&self, rng: &mut ThreadRng) -> f32 {
-        rng.sample(self.d)
+        match &self.range {
+            Some(range) => rng.sample(self.d).clamp(range.start, range.end),
+            None => rng.sample(self.d)
+        }
+    }
+    pub fn mutate(&self, rng: &mut ThreadRng, old: f32) -> f32 {
+        match &self.range {
+            Some(range) => (rng.sample(self.d) + old).clamp(range.start, range.end),
+            None => rng.sample(self.d) + old
+        }
     }
     pub fn change(&self, rng: &mut ThreadRng) -> bool {
         rng.gen_bool(self.f as f64)
@@ -60,6 +76,17 @@ impl RandomMorphologyParams {
 
         for _ in 0..rng.gen_range(self.edges.clone()) {
             graph.add_edge(self.rand_edge.build_edge(rng), node_ids[rng.gen_range(0..n_nodes)], node_ids[rng.gen_range(0..n_nodes)]);
+        }
+
+        let mut connected_nodes = HashSet::new();
+        for edge in graph.edges.values() {
+            connected_nodes.insert(edge.from);
+            connected_nodes.insert(edge.to);
+        }
+        for node in graph.nodes.keys().map(|v| *v).collect::<Vec<NodeID>>().iter() {
+            if !connected_nodes.contains(node) {
+                graph.remove_node(*node);
+            }
         }
         
         CreatureMorphologyGraph {
@@ -111,14 +138,16 @@ impl Default for MutateMorphologyParams {
         Self {
             node: MutateNodeParams {
                 density: MutateFieldParams::new(0.05, 0.0, 0.1).unwrap(),
+                friction: MutateFieldParams::new(0.05, 0.0, 0.1).unwrap().in_range(0.1..0.9),
+                restitution: MutateFieldParams::new(0.05, 0.0, 0.1).unwrap().in_range(0.1..0.9),
                 recursive: MutateFieldParams::new(0.05, 0.0, 0.75).unwrap(),
                 terminal_freq: 0.05,
             },
             edge: MutateEdgeParams {
                 placement_face_freq: 0.05,
-                placement_pos: MutateFieldParams::new(0.1, 0.0, 0.05).unwrap(),
+                placement_pos: MutateFieldParams::new(0.1, 0.0, 0.05).unwrap().in_range(-1.0..1.0),
                 placement_rot: MutateFieldParams::new(0.1, 0.0, 0.1).unwrap(),
-                placement_scale: MutateFieldParams::new(0.1, 0.0, 0.075).unwrap(),
+                placement_scale: MutateFieldParams::new(0.1, 0.0, 0.075).unwrap().in_range(0.05..20.0),
                 limit_axes: MutateFieldParams::new(0.2, 0.0, 0.03).unwrap(),
             },
             rand_node: RandomNodeParams::default(),
@@ -179,10 +208,12 @@ impl<'a> MutateMorphology<'a> {
 
         // Step 4: add and remove random edges
         for edge in self.morph.edge_ids() {
-            if self.rng.gen_bool(self.params.edge_del_freq as f64 / self.morph.edges_len() as f64) {
+            if self.morph.edges_len() > 1 && self.rng.gen_bool(self.params.edge_del_freq as f64 / self.morph.edges_len() as f64) {
                 self.morph.remove_edge(edge);
             }
         }
+        let n_nodes = self.morph.nodes_len();
+        let node_ids = self.morph.node_ids();
         for node in self.morph.node_ids() {
             if self.rng.gen_bool(self.params.edge_add_freq as f64 / self.morph.nodes_len() as f64) {
                 self.morph.add_edge(self.params.rand_edge.build_edge(self.rng), node, node_ids[self.rng.gen_range(0..n_nodes)]);
@@ -194,6 +225,11 @@ impl<'a> MutateMorphology<'a> {
         for edge in self.morph.edges() {
             connected_nodes.insert(edge.from);
             connected_nodes.insert(edge.to);
+        }
+        for node in self.morph.node_ids() {
+            if !connected_nodes.contains(&node) {
+                self.morph.remove_node(node);
+            }
         }
 
         if scale != 0.0 { self.params.set_scale(scale) };

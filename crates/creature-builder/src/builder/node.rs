@@ -22,6 +22,8 @@ impl EdgeData for LimbConnection {}
 pub struct LimbNode {
     pub name: Option<String>,
     pub density: f32,
+    pub friction: f32,
+    pub restitution: f32,
     pub terminal_only: bool,
     pub recursive_limit: usize,
 }
@@ -57,7 +59,10 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                             CreatureLimbBundle::new()
                                 .with_transform(limb_position.transform.with_scale(Vec3::ONE))
                                 .with_name(match self.name.clone() { Some(name) => name, None => "()".to_string() })
-                                .with_size(limb_position.transform.scale),
+                                .with_size(limb_position.transform.scale)
+                                .with_density(self.density)
+                                .with_friction(self.friction)
+                                .with_restitution(self.restitution),
                             cur_limb_id,
                         )
                     );
