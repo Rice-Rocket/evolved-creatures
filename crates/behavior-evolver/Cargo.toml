@@ -23,6 +23,6 @@ path = "tests/behavior_evolver.rs"
 harness = false
 
 [[test]]
-name = "mate_mutate"
-path = "tests/mate_mutate.rs"
+name = "mutate"
+path = "tests/mutate.rs"
 harness = true

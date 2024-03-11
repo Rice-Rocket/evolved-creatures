@@ -9,6 +9,7 @@ use self::{node::{MutateNodeParams, MutateNode, RandomNodeParams}, edge::{Mutate
 
 pub mod node;
 pub mod edge;
+pub mod expr;
 
 
 pub struct MutateFieldParams {

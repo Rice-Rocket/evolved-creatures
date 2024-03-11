@@ -4,7 +4,7 @@ use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlu
 use bevy_editor_pls::prelude::*;
 
 use bevy_rapier3d::prelude::*;
-use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::{CreatureContextElement, CreatureJointEffector, CreatureJointEffectors, JointContextElement}, expr::{node::ExprNode, value::ExprValue, Expr}, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin, CreatureId};
+use creature_builder::{builder::{node::{BuildParameters, CreatureMorphologyGraph, LimbConnection, LimbNode}, placement::{LimbAttachFace, LimbRelativePlacement}}, config::{ActiveCollisionTypes, CreatureBuilderConfig}, effector::{CreatureContextElement, CreatureJointEffector, CreatureJointEffectors, JointContextElement}, expr::{node::{ExprNode, ExprBinaryOp}, value::ExprValue, Expr}, sensor::{ContactFilter, ContactFilterTag}, CreatureBuilderPlugin, CreatureId};
 
 
 fn main() {
@@ -75,8 +75,10 @@ fn behavior_evolver_scene(
         recursive_limit: 2,
     });
     let expr = Expr {
-        root: ExprNode::Add(
-            Box::new(ExprNode::Mul(
+        root: ExprNode::BinaryOp(
+            ExprBinaryOp::Add,
+            Box::new(ExprNode::BinaryOp(
+                ExprBinaryOp::Mul,
                 Box::new(ExprNode::Constant(ExprValue(1.0))), 
                 Box::new(ExprNode::Value(CreatureContextElement::LocalJoint { element: JointContextElement::JointAxis { axis: JointAxis::AngX } }))
             )),

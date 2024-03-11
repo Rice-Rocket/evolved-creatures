@@ -14,8 +14,10 @@ bevy_screen_diagnostics.workspace = true
 bevy_editor_pls.workspace = true
 
 data-structure-utils.workspace = true
+random-derive.workspace = true
 
 bitflags = "2.4.2"
+rand = "0.8.5"
 
 [[test]]
 name = "creature-builder"

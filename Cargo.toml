@@ -13,6 +13,7 @@ members = [
     "crates/custom_bevy_editor/crates/bevy_editor_pls_default_windows",
     "crates/data-structure-utils", 
     "crates/behavior-evolver", 
+    "crates/random-derive", 
 ]
 
 [dependencies]
@@ -41,6 +42,7 @@ creature-builder = { path = "crates/creature-builder" }
 behavior-evolver = { path = "crates/behavior-evolver" }
 
 data-structure-utils = { path = "crates/data-structure-utils" }
+random-derive = { path = "crates/random-derive" }
 
 bevy_rapier3d = { version = "0.24.0", features = [ "enhanced-determinism" ] }
 bevy = "0.12.0"
