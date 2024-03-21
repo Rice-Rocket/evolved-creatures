@@ -1,7 +1,8 @@
 use bevy::prelude::*;
+use random_derive::RandField;
 
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, RandField)]
 pub enum LimbAttachFace {
     PosX, 
     NegX,

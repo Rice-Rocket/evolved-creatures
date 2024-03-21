@@ -1,8 +1,19 @@
 use std::ops::Range;
 
 use bevy_rapier3d::dynamics::JointAxis;
-use creature_builder::{expr::{Expr, node::{ExprNode, ExprUnaryOp, ExprBinaryOp, ExprTernaryOp}, value::ExprValue}, effector::{CreatureContextElement, JointContextElement}, builder::placement::LimbAttachFace};
+use creature_builder::{
+    builder::placement::LimbAttachFace,
+    effector::{CreatureContextElement, JointContextElement},
+    expr::{
+        node::{ExprBinaryOp, ExprNode, ExprTernaryOp, ExprUnaryOp},
+        value::ExprValue,
+        Expr,
+    },
+};
 use rand::{rngs::ThreadRng, Rng};
+
+use super::MutateFieldParams;
+
 
 pub struct RandomExprParams {
     pub value_weight: usize,
@@ -16,6 +27,7 @@ impl RandomExprParams {
     pub fn build_expr(&self, rng: &mut ThreadRng) -> Expr {
         Expr { root: self.build(rng, 0) }
     }
+
     pub fn with_joint_count(mut self, count: usize) -> Self {
         self.joint_count = count;
         self
@@ -25,48 +37,48 @@ impl RandomExprParams {
         match rng.gen_range(0usize..3) {
             0 => JointContextElement::ParentContact { face: LimbAttachFace::from_index(rng.gen_range(0..6)) },
             1 => JointContextElement::ChildContact { face: LimbAttachFace::from_index(rng.gen_range(0..6)) },
-            2 => JointContextElement::JointAxis { axis: match rng.gen_range(0usize..6) {
-                0 => JointAxis::X,
-                1 => JointAxis::Y,
-                2 => JointAxis::Z,
-                3 => JointAxis::AngX,
-                4 => JointAxis::AngY,
-                5 => JointAxis::AngZ,
-                _ => unreachable!()
-                }
+            2 => JointContextElement::JointAxis {
+                axis: match rng.gen_range(0usize..6) {
+                    0 => JointAxis::X,
+                    1 => JointAxis::Y,
+                    2 => JointAxis::Z,
+                    3 => JointAxis::AngX,
+                    4 => JointAxis::AngY,
+                    5 => JointAxis::AngZ,
+                    _ => unreachable!(),
+                },
             },
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
+
+    pub fn build_single(&self, rng: &mut ThreadRng) -> Box<ExprNode> {
+        Box::new(self.build(rng, self.max_depth + 1))
+    }
+
     fn build(&self, rng: &mut ThreadRng, depth: usize) -> ExprNode {
-        let range_min = if depth > self.max_depth { 18usize } else { 0usize };
-        let value_weight = self.value_weight + 18;
+        const NODE_WEIGHT: usize = 5;
+
+        let range_min = if depth > self.max_depth { NODE_WEIGHT } else { 0usize };
+        let value_weight = self.value_weight + NODE_WEIGHT;
         let const_weight = value_weight + self.const_weight;
 
         let r = rng.gen_range(range_min..const_weight);
-        if r < 18 {
+        if r < NODE_WEIGHT {
             match r {
-                0 => ExprNode::UnaryOp(ExprUnaryOp::Sign, Box::new(self.build(rng, depth + 1))),
-                1 => ExprNode::UnaryOp(ExprUnaryOp::Abs, Box::new(self.build(rng, depth + 1))),
-                2 => ExprNode::UnaryOp(ExprUnaryOp::Sin, Box::new(self.build(rng, depth + 1))),
-                3 => ExprNode::UnaryOp(ExprUnaryOp::Cos, Box::new(self.build(rng, depth + 1))),
-                4 => ExprNode::UnaryOp(ExprUnaryOp::Log, Box::new(self.build(rng, depth + 1))),
-                5 => ExprNode::UnaryOp(ExprUnaryOp::Exp, Box::new(self.build(rng, depth + 1))),
-                6 => ExprNode::UnaryOp(ExprUnaryOp::Sigmoid, Box::new(self.build(rng, depth + 1))),
-
-                7 => ExprNode::BinaryOp(ExprBinaryOp::Add, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                8 => ExprNode::BinaryOp(ExprBinaryOp::Sub, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                9 => ExprNode::BinaryOp(ExprBinaryOp::Mul, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                10 => ExprNode::BinaryOp(ExprBinaryOp::Div, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                11 => ExprNode::BinaryOp(ExprBinaryOp::Mod, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                12 => ExprNode::BinaryOp(ExprBinaryOp::GreaterThan, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                13 => ExprNode::BinaryOp(ExprBinaryOp::Min, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                14 => ExprNode::BinaryOp(ExprBinaryOp::Max, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                15 => ExprNode::BinaryOp(ExprBinaryOp::Atan, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-
-                16 => ExprNode::TernaryOp(ExprTernaryOp::IfElse, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                17 => ExprNode::TernaryOp(ExprTernaryOp::Lerp, Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1)), Box::new(self.build(rng, depth + 1))),
-                _ => unreachable!()
+                0 | 1 => ExprNode::UnaryOp(ExprUnaryOp::rand_field(rng), Box::new(self.build(rng, depth + 1))),
+                2 | 3 => ExprNode::BinaryOp(
+                    ExprBinaryOp::rand_field(rng),
+                    Box::new(self.build(rng, depth + 1)),
+                    Box::new(self.build(rng, depth + 1)),
+                ),
+                4 => ExprNode::TernaryOp(
+                    ExprTernaryOp::rand_field(rng),
+                    Box::new(self.build(rng, depth + 1)),
+                    Box::new(self.build(rng, depth + 1)),
+                    Box::new(self.build(rng, depth + 1)),
+                ),
+                _ => unreachable!(),
             }
         } else if r < value_weight {
             ExprNode::Value(match rng.gen_range(0usize..3) {
@@ -83,31 +95,38 @@ impl RandomExprParams {
 
 impl Default for RandomExprParams {
     fn default() -> Self {
-        Self {
-            value_weight: 5,
-            const_weight: 5,
-            const_range: -10.0..10.0,
-            max_depth: 3,
-            joint_count: 1,
-        }
+        Self { value_weight: 2, const_weight: 2, const_range: -10.0..10.0, max_depth: 3, joint_count: 1 }
     }
 }
 
 
 pub struct MutateExprParams {
     pub op_change_freq: f32,
+    pub change_type_freq: f32,
+    pub value_change_freq: f32,
+    pub value_change_type_freq: f32,
+    pub constant: MutateFieldParams,
+    pub new_expr: RandomExprParams,
 }
 
 impl MutateExprParams {
     pub fn set_scale(&mut self, inv_scale: f32) {
         self.op_change_freq *= inv_scale;
+        self.change_type_freq *= inv_scale;
+        self.value_change_freq *= inv_scale;
+        self.value_change_type_freq *= inv_scale;
     }
 }
 
 impl Default for MutateExprParams {
     fn default() -> Self {
         Self {
-            op_change_freq: 0.1,
+            op_change_freq: 0.25,
+            change_type_freq: 0.1,
+            value_change_freq: 0.2,
+            value_change_type_freq: 0.1,
+            constant: MutateFieldParams::new(0.1, 0.0, 0.25).unwrap(),
+            new_expr: RandomExprParams::default(),
         }
     }
 }
@@ -116,17 +135,27 @@ impl Default for MutateExprParams {
 pub struct MutateExpr<'a> {
     rng: &'a mut ThreadRng,
     expr: &'a mut Expr,
-    params: &'a MutateExprParams,
+    params: &'a mut MutateExprParams,
 }
 
 impl<'a> MutateExpr<'a> {
-    pub fn new(expr: &'a mut Expr, rng: &'a mut ThreadRng, params: &'a MutateExprParams) -> Self {
+    pub fn new(expr: &'a mut Expr, rng: &'a mut ThreadRng, params: &'a mut MutateExprParams) -> Self {
         Self { expr, rng, params }
+    }
+
+    pub fn with_joint_count(self, count: usize) -> Self {
+        self.params.new_expr.joint_count = count;
+        self
+    }
+
+    pub fn set_joint_count(&mut self, count: usize) {
+        self.params.new_expr.joint_count = count;
     }
 
     pub fn inner(&'a self) -> &'a Expr {
         self.expr
     }
+
     pub fn into_inner(self) -> &'a Expr {
         self.expr
     }
@@ -135,9 +164,109 @@ impl<'a> MutateExpr<'a> {
         let root = Box::new(self.expr.root.clone());
         self.expr.root = self.mutate_node(&root).as_ref().clone();
     }
+
+    fn mutate_element(&mut self, element: &JointContextElement) -> JointContextElement {
+        match element {
+            JointContextElement::ParentContact { .. } => {
+                JointContextElement::ParentContact { face: LimbAttachFace::rand_field(&mut self.rng) }
+            },
+            JointContextElement::ChildContact { .. } => {
+                JointContextElement::ChildContact { face: LimbAttachFace::rand_field(&mut self.rng) }
+            },
+            JointContextElement::JointAxis { .. } => JointContextElement::JointAxis {
+                axis: match self.rng.gen_range(0..6) {
+                    0 => JointAxis::X,
+                    1 => JointAxis::Y,
+                    2 => JointAxis::Z,
+                    3 => JointAxis::AngX,
+                    4 => JointAxis::AngY,
+                    5 => JointAxis::AngZ,
+                    _ => unreachable!(),
+                },
+            },
+        }
+    }
+
+    fn random_element(&mut self) -> JointContextElement {
+        match self.rng.gen_range(0..3) {
+            0 => JointContextElement::ParentContact { face: LimbAttachFace::rand_field(&mut self.rng) },
+            1 => JointContextElement::ChildContact { face: LimbAttachFace::rand_field(&mut self.rng) },
+            _ => JointContextElement::JointAxis {
+                axis: match self.rng.gen_range(0..6) {
+                    0 => JointAxis::X,
+                    1 => JointAxis::Y,
+                    2 => JointAxis::Z,
+                    3 => JointAxis::AngX,
+                    4 => JointAxis::AngY,
+                    5 => JointAxis::AngZ,
+                    _ => unreachable!(),
+                },
+            },
+        }
+    }
+
+    fn random_joint_index(&mut self) -> usize {
+        self.rng.gen_range(0usize..self.params.new_expr.joint_count)
+    }
+
     fn mutate_node(&mut self, node: &Box<ExprNode>) -> Box<ExprNode> {
+        let change_type = self.rng.gen_bool(self.params.change_type_freq as f64);
+
+        if let ExprNode::Value(value) = node.as_ref() {
+            if self.rng.gen_bool(self.params.value_change_freq as f64) {
+                if self.rng.gen_bool(self.params.value_change_type_freq as f64) {
+                    return Box::new(ExprNode::Value(match value {
+                        CreatureContextElement::LocalJoint { element } => match self.rng.gen_range(0..2) {
+                            0 => CreatureContextElement::GlobalJoint { element: element.clone(), joint: self.random_joint_index() },
+                            _ => CreatureContextElement::Time,
+                        },
+                        CreatureContextElement::GlobalJoint { element, .. } => match self.rng.gen_range(0..2) {
+                            0 => CreatureContextElement::LocalJoint { element: element.clone() },
+                            _ => CreatureContextElement::Time,
+                        },
+                        CreatureContextElement::Time => match self.rng.gen_range(0..2) {
+                            0 => CreatureContextElement::LocalJoint { element: self.random_element() },
+                            _ => CreatureContextElement::GlobalJoint { element: self.random_element(), joint: self.random_joint_index() },
+                        },
+                    }));
+                } else {
+                    return Box::new(ExprNode::Value(match value {
+                        CreatureContextElement::LocalJoint { element } => {
+                            CreatureContextElement::LocalJoint { element: self.mutate_element(element) }
+                        },
+                        CreatureContextElement::GlobalJoint { element, .. } => {
+                            CreatureContextElement::GlobalJoint { element: self.mutate_element(element), joint: self.random_joint_index() }
+                        },
+                        CreatureContextElement::Time => CreatureContextElement::Time,
+                    }));
+                }
+            }
+        }
+
+        if let ExprNode::Constant(v) = node.as_ref() {
+            if self.params.constant.change(&mut self.rng) {
+                return Box::new(ExprNode::Constant(ExprValue(self.params.constant.mutate(&mut self.rng, v.0))));
+            }
+        }
+
         if let ExprNode::UnaryOp(op, x) = node.as_ref() {
             let inner = self.mutate_node(x);
+            if change_type {
+                if self.rng.gen_bool(0.5) {
+                    return Box::new(ExprNode::BinaryOp(
+                        ExprBinaryOp::rand_field(&mut self.rng),
+                        inner,
+                        self.params.new_expr.build_single(&mut self.rng),
+                    ));
+                } else {
+                    return Box::new(ExprNode::TernaryOp(
+                        ExprTernaryOp::rand_field(&mut self.rng),
+                        inner,
+                        self.params.new_expr.build_single(&mut self.rng),
+                        self.params.new_expr.build_single(&mut self.rng),
+                    ));
+                }
+            }
             if self.rng.gen_bool(self.params.op_change_freq as f64) {
                 return Box::new(ExprNode::UnaryOp(ExprUnaryOp::rand_field(&mut self.rng), inner));
             }
@@ -146,10 +275,38 @@ impl<'a> MutateExpr<'a> {
         if let ExprNode::BinaryOp(op, a, b) = node.as_ref() {
             let inner_a = self.mutate_node(a);
             let inner_b = self.mutate_node(b);
+            if change_type {
+                if self.rng.gen_bool(0.5) {
+                    return Box::new(ExprNode::UnaryOp(ExprUnaryOp::rand_field(&mut self.rng), inner_a));
+                } else {
+                    return Box::new(ExprNode::TernaryOp(
+                        ExprTernaryOp::rand_field(&mut self.rng),
+                        inner_a,
+                        inner_b,
+                        self.params.new_expr.build_single(&mut self.rng),
+                    ));
+                }
+            }
             if self.rng.gen_bool(self.params.op_change_freq as f64) {
                 return Box::new(ExprNode::BinaryOp(ExprBinaryOp::rand_field(&mut self.rng), inner_a, inner_b));
             }
             return Box::new(ExprNode::BinaryOp(op.clone(), inner_a, inner_b));
+        }
+        if let ExprNode::TernaryOp(op, a, b, c) = node.as_ref() {
+            let inner_a = self.mutate_node(a);
+            let inner_b = self.mutate_node(b);
+            let inner_c = self.mutate_node(c);
+            if change_type {
+                if self.rng.gen_bool(0.5) {
+                    return Box::new(ExprNode::UnaryOp(ExprUnaryOp::rand_field(&mut self.rng), inner_a));
+                } else {
+                    return Box::new(ExprNode::BinaryOp(ExprBinaryOp::rand_field(&mut self.rng), inner_a, inner_b));
+                }
+            }
+            if self.rng.gen_bool(self.params.op_change_freq as f64) {
+                return Box::new(ExprNode::TernaryOp(ExprTernaryOp::rand_field(&mut self.rng), inner_a, inner_b, inner_c));
+            }
+            return Box::new(ExprNode::TernaryOp(op.clone(), inner_a, inner_b, inner_c));
         }
 
         node.clone()
