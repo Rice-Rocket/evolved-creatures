@@ -1,17 +1,16 @@
 use bevy::prelude::*;
 
-use crate::prelude::{RigidBodyState, RigidBodySimulationSettings, RigidBodyProperties};
+use crate::prelude::{RigidBodyProperties, RigidBodySimulationSettings, RigidBodyState};
 
 
-pub(crate) fn update_positions(
-    mut bodies: Query<(&mut RigidBodyState, &RigidBodyProperties)>,
-    settings: Res<RigidBodySimulationSettings>,
-) {
+pub(crate) fn update_positions(mut bodies: Query<(&mut RigidBodyState, &RigidBodyProperties)>, settings: Res<RigidBodySimulationSettings>) {
     let dt = settings.sub_dt;
     for (mut state, props) in bodies.iter_mut() {
-        if props.locked { continue };
+        if props.locked {
+            continue;
+        };
         let vh = 0.5 * state.acceleration * dt + state.velocity;
-        state.position = state.position + vh * dt;
+        state.position += vh * dt;
         state.velocity = vh;
 
 
@@ -56,9 +55,7 @@ pub(crate) fn update_velocities(
     }
 }
 
-pub(crate) fn update_object_transform(
-    mut bodies: Query<(&mut Transform, &RigidBodyState, &RigidBodyProperties)>,
-) {
+pub(crate) fn update_object_transform(mut bodies: Query<(&mut Transform, &RigidBodyState, &RigidBodyProperties)>) {
     for (mut transform, state, props) in bodies.iter_mut() {
         transform.translation = state.position;
         transform.scale = props.scale;

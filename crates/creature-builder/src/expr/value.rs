@@ -3,9 +3,9 @@ use std::ops::{Add, Div, Mul, Sub};
 #[derive(Clone, Debug)]
 pub struct ExprValue(pub f32);
 
-impl Into<f32> for ExprValue {
-    fn into(self) -> f32 {
-        self.0
+impl From<ExprValue> for f32 {
+    fn from(val: ExprValue) -> Self {
+        val.0
     }
 }
 
@@ -13,18 +13,23 @@ impl ExprValue {
     pub fn atan(self, rhs: Self) -> Option<Self> {
         Some(Self(self.0.atan2(rhs.0)))
     }
+
     pub fn modulo(self, rhs: Self) -> Option<Self> {
         Some(Self(self.0.rem_euclid(rhs.0)))
     }
+
     pub fn gt(self, rhs: Self) -> Option<Self> {
         Some(Self(if self.0 > rhs.0 { 1.0 } else { 0.0 }))
     }
+
     pub fn min(self, rhs: Self) -> Option<Self> {
         Some(Self(self.0.min(rhs.0)))
     }
+
     pub fn max(self, rhs: Self) -> Option<Self> {
         Some(Self(self.0.max(rhs.0)))
     }
+
     pub fn sigmoid(self) -> Option<Self> {
         let v = 1.0 / (1.0 + (-self.0).exp());
         if v.is_finite() {
@@ -33,9 +38,15 @@ impl ExprValue {
             None
         }
     }
+
     pub fn if_else(self, a: Self, b: Self) -> Option<Self> {
-        if self.0 == 1.0 { Some(a) } else { Some(b) }
+        if self.0 == 1.0 {
+            Some(a)
+        } else {
+            Some(b)
+        }
     }
+
     pub fn lerp(self, b: Self, t: Self) -> Option<Self> {
         Some(Self(self.0 + (b.0 - self.0) * t.0))
     }
@@ -49,7 +60,7 @@ macro_rules! impl_un_op {
                 Some(ExprValue(self.0.$fun()))
             }
         }
-    }
+    };
 }
 
 
@@ -65,6 +76,7 @@ macro_rules! impl_bin_op {
     ($op:ident, $fun:ident) => {
         impl $op<ExprValue> for ExprValue {
             type Output = Option<ExprValue>;
+
             fn $fun(self, rhs: ExprValue) -> Self::Output {
                 let val = self.0.$fun(rhs.0);
                 if val.is_finite() {
@@ -74,7 +86,7 @@ macro_rules! impl_bin_op {
                 }
             }
         }
-    }
+    };
 }
 
 impl_bin_op!(Add, add);

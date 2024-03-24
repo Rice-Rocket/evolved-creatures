@@ -1,10 +1,10 @@
-pub mod limb;
-pub mod joint;
-pub mod sensor;
-pub mod config;
 pub mod builder;
+pub mod config;
 pub mod effector;
 pub mod expr;
+pub mod joint;
+pub mod limb;
+pub mod sensor;
 
 
 use std::collections::{hash_map::Entry, HashMap};
@@ -36,8 +36,8 @@ fn behavior_main(
                 let mut context = CreatureContext::new();
                 let parent_contacts = limbs.get(joint.parent).unwrap().0;
                 let child_contacts = limbs.get(entity).unwrap().0;
-                let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
-                let child_transform = limbs.get(entity).unwrap().1.clone();
+                let parent_transform = *limbs.get(joint.parent).unwrap().1;
+                let child_transform = *limbs.get(entity).unwrap().1;
                 let joint_context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform);
                 context.set_time(time.elapsed_seconds());
                 context.add_joint(joint_context);
@@ -48,24 +48,24 @@ fn behavior_main(
             Entry::Occupied(mut entry) => {
                 let parent_contacts = limbs.get(joint.parent).unwrap().0;
                 let child_contacts = limbs.get(entity).unwrap().0;
-                let parent_transform = limbs.get(joint.parent).unwrap().1.clone();
-                let child_transform = limbs.get(entity).unwrap().1.clone();
-                let context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform); 
+                let parent_transform = *limbs.get(joint.parent).unwrap().1;
+                let child_transform = *limbs.get(entity).unwrap().1;
+                let context = JointContext::new(parent_contacts, child_contacts, &parent_transform, &child_transform);
 
                 joint_indices.insert(i, entry.get().len());
                 entry.get_mut().add_joint(context);
-            }
+            },
         }
     }
 
     for (i, (joint_data, joint, effectors, entity)) in joints.iter_mut().enumerate() {
         creature_contexts.get_mut(&joint_data.creature).unwrap().set_current_joint(joint_indices[&i]);
-        let child_transform = limbs.get(entity).unwrap().1.clone();
+        let child_transform = *limbs.get(entity).unwrap().1;
         let context = creature_contexts.get(&joint_data.creature).unwrap();
-        
+
         for (i, effector) in effectors.effectors.iter().enumerate() {
             let Some(effector) = effector else { continue };
-            let force = effector.expr.evaluate(&context);
+            let force = effector.expr.evaluate(context);
 
             let (axis, rotational) = match i {
                 0 => (Vec3::X, false),
@@ -74,7 +74,7 @@ fn behavior_main(
                 3 => (Vec3::X, true),
                 4 => (Vec3::Y, true),
                 5 => (Vec3::Z, true),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
             if rotational {
@@ -94,8 +94,6 @@ pub struct CreatureBuilderPlugin;
 
 impl Plugin for CreatureBuilderPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .init_resource::<CreatureBuilderConfig>()
-            .add_systems(Update, (update_sensor_status, behavior_main));
+        app.init_resource::<CreatureBuilderConfig>().add_systems(Update, (update_sensor_status, behavior_main));
     }
 }

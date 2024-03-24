@@ -1,13 +1,19 @@
 use bevy::prelude::*;
-use crate::{prelude::*, controls, editor::{EditorEvent, EditorInternalState}, default_windows, egui_dock, editor_window::EditorWindow};
 use bevy_rapier3d::prelude::*;
+
+use crate::{
+    controls, default_windows,
+    editor::{EditorEvent, EditorInternalState},
+    editor_window::EditorWindow,
+    egui_dock,
+    prelude::*,
+};
 
 pub struct RapierPhysicsEditorPlugin;
 
 impl Plugin for RapierPhysicsEditorPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_plugins(EditorPlugin::new())
+        app.add_plugins(EditorPlugin::new())
             .insert_resource(editor_controls())
             .add_systems(Update, run_editor)
             .add_systems(Startup, setup_editor)
@@ -25,6 +31,7 @@ struct PhysicsSettingsWindowState {
 
 impl EditorWindow for PhysicsSettingsWindow {
     type State = PhysicsSettingsWindowState;
+
     const NAME: &'static str = "Physics settings";
 
     fn ui(world: &mut World, mut cx: crate::editor_window::EditorWindowContext, ui: &mut bevy_inspector_egui::egui::Ui) {
@@ -39,11 +46,7 @@ impl EditorWindow for PhysicsSettingsWindow {
     }
 }
 
-pub fn horizontal_if<R>(
-    ui: &mut egui::Ui,
-    horizontal: bool,
-    add_contents: impl FnOnce(&mut egui::Ui) -> R,
-) -> R {
+pub fn horizontal_if<R>(ui: &mut egui::Ui, horizontal: bool, add_contents: impl FnOnce(&mut egui::Ui) -> R) -> R {
     if horizontal {
         ui.horizontal(add_contents).inner
     } else {
@@ -51,11 +54,7 @@ pub fn horizontal_if<R>(
     }
 }
 
-fn debug_ui_options(
-    world: &mut World,
-    state: &mut PhysicsSettingsWindowState,
-    ui: &mut egui::Ui,
-) {
+fn debug_ui_options(world: &mut World, state: &mut PhysicsSettingsWindowState, ui: &mut egui::Ui) {
     egui::Grid::new("physics settings").show(ui, |ui| {
         let keys = world.resource::<Input<KeyCode>>().clone();
         let mut sim_config = world.resource_mut::<RapierConfiguration>();
@@ -67,22 +66,14 @@ fn debug_ui_options(
             changed = true;
         }
         if ui.checkbox(&mut state.pause_time, "").changed() || changed {
-            if state.pause_time {
-                sim_config.physics_pipeline_active = false;
-            } else {
-                sim_config.physics_pipeline_active = true;
-            }
+            sim_config.physics_pipeline_active = !state.pause_time
         }
         ui.end_row();
 
         ui.label("Substeps");
-        if let TimestepMode::Variable{ max_dt, time_scale, mut substeps } = sim_config.timestep_mode {
+        if let TimestepMode::Variable { max_dt, time_scale, mut substeps } = sim_config.timestep_mode {
             if ui.add(egui::DragValue::new(&mut substeps)).changed() {
-                sim_config.timestep_mode = TimestepMode::Variable {
-                    max_dt, 
-                    time_scale,
-                    substeps,
-                };
+                sim_config.timestep_mode = TimestepMode::Variable { max_dt, time_scale, substeps };
             }
         }
 
@@ -124,35 +115,24 @@ fn editor_controls() -> controls::EditorControls {
     let mut editor_controls = controls::EditorControls::default_bindings();
 
     editor_controls.unbind(controls::Action::PlayPauseEditor);
-    editor_controls.insert(
-        controls::Action::PlayPauseEditor,
-        controls::Binding {
-            input: controls::UserInput::Single(controls::Button::Keyboard(KeyCode::Escape)),
-            conditions: vec![controls::BindingCondition::ListeningForText(false)],
-        },
-    );
+    editor_controls.insert(controls::Action::PlayPauseEditor, controls::Binding {
+        input: controls::UserInput::Single(controls::Button::Keyboard(KeyCode::Escape)),
+        conditions: vec![controls::BindingCondition::ListeningForText(false)],
+    });
 
     editor_controls
 }
 
-fn setup_editor(
-    mut commands: Commands,
-) {
+fn setup_editor(mut commands: Commands) {
     let mut internal_state = EditorInternalState::default();
 
-    let [game, _inspector] =
-        internal_state.split_right::<default_windows::inspector::InspectorWindow>(egui_dock::NodeIndex::root(), 0.75);
+    let [game, _inspector] = internal_state.split_right::<default_windows::inspector::InspectorWindow>(egui_dock::NodeIndex::root(), 0.75);
     let [game, _hierarchy] = internal_state.split_left::<default_windows::hierarchy::HierarchyWindow>(game, 0.2);
-    let [_game, _bottom] = internal_state.split_many(
-        game,
-        0.8,
-        egui_dock::Split::Below,
-        &[
-            std::any::TypeId::of::<PhysicsSettingsWindow>(),
-            std::any::TypeId::of::<default_windows::debug_settings::DebugSettingsWindow>(),
-            std::any::TypeId::of::<default_windows::diagnostics::DiagnosticsWindow>(),
-        ],
-    );
+    let [_game, _bottom] = internal_state.split_many(game, 0.8, egui_dock::Split::Below, &[
+        std::any::TypeId::of::<PhysicsSettingsWindow>(),
+        std::any::TypeId::of::<default_windows::debug_settings::DebugSettingsWindow>(),
+        std::any::TypeId::of::<default_windows::diagnostics::DiagnosticsWindow>(),
+    ]);
 
     commands.insert_resource(internal_state);
 }

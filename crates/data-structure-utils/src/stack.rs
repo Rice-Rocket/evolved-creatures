@@ -4,6 +4,12 @@ pub struct Stack<T: Clone> {
 }
 
 
+impl<T: Clone> Default for Stack<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Clone> Stack<T> {
     pub fn new() -> Stack<T> {
         Stack { stack: Vec::new() }
@@ -13,21 +19,22 @@ impl<T: Clone> Stack<T> {
     pub fn push(&mut self, value: T) {
         self.stack.push(value);
     }
+
     /// Pop a value from the end of the stack
     pub fn pop(&mut self) -> Option<T> {
         self.stack.pop()
     }
+
     /// Peek the next value in the stack
     pub fn peek(&self) -> Option<T> {
-        match self.stack.last() {
-            Some(value) => Some(value.clone()),
-            None => None,
-        }
+        self.stack.last().cloned()
     }
+
     /// The size or length of the stack
     pub fn size(&self) -> usize {
         self.stack.len()
     }
+
     /// Whether or not the stack is empty
     pub fn is_empty(&self) -> bool {
         self.size() == 0

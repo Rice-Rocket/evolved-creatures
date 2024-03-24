@@ -4,7 +4,7 @@ use random_derive::RandField;
 
 #[derive(Debug, Clone, Copy, PartialEq, RandField)]
 pub enum LimbAttachFace {
-    PosX, 
+    PosX,
     NegX,
     PosY,
     NegY,
@@ -22,16 +22,15 @@ impl LimbAttachFace {
             } else {
                 LimbAttachFace::PosZ
             }
+        } else if p.x < p.y && p.x < p.z {
+            LimbAttachFace::NegX
+        } else if p.y < p.z {
+            LimbAttachFace::NegY
         } else {
-            if p.x < p.y && p.x < p.z {
-                LimbAttachFace::NegX
-            } else if p.y < p.z {
-                LimbAttachFace::NegY
-            } else {
-                LimbAttachFace::NegZ
-            }
+            LimbAttachFace::NegZ
         }
     }
+
     pub fn direction(&self) -> Vec3 {
         match *self {
             LimbAttachFace::PosX => Vec3::X,
@@ -42,6 +41,7 @@ impl LimbAttachFace {
             LimbAttachFace::NegZ => Vec3::NEG_Z,
         }
     }
+
     pub fn on_tangent_plane(&self, p: Vec2) -> Vec3 {
         match *self {
             LimbAttachFace::PosX => Vec3::new(0.0, p.x, p.y),
@@ -52,6 +52,7 @@ impl LimbAttachFace {
             LimbAttachFace::NegZ => Vec3::new(p.x, p.y, 0.0),
         }
     }
+
     pub fn orientation(&self) -> Quat {
         match *self {
             LimbAttachFace::PosX => Quat::from_rotation_arc(Vec3::Y, Vec3::X),
@@ -62,6 +63,7 @@ impl LimbAttachFace {
             LimbAttachFace::NegZ => Quat::from_rotation_arc(Vec3::Y, Vec3::NEG_Z),
         }
     }
+
     pub fn from_index(index: usize) -> Self {
         match index {
             0 => Self::PosX,
@@ -70,9 +72,12 @@ impl LimbAttachFace {
             3 => Self::NegY,
             4 => Self::PosZ,
             5 => Self::NegZ,
-            _ => { panic!("Cannot index into LimbAttachFace with index {}", index) }
+            _ => {
+                panic!("Cannot index into LimbAttachFace with index {}", index)
+            },
         }
     }
+
     pub fn index(&self) -> usize {
         match *self {
             LimbAttachFace::PosX => 0,
@@ -86,11 +91,13 @@ impl LimbAttachFace {
 }
 
 
-/// The relative translation, orientation, and scale of a limb in comparison to its parent
+/// The relative translation, orientation, and scale of a limb in comparison to
+/// its parent
 #[derive(Debug)]
 pub struct LimbRelativePlacement {
     pub attach_face: LimbAttachFace,
-    /// The percentage along the attach face (in range `[-1, 1]`) to place the limb
+    /// The percentage along the attach face (in range `[-1, 1]`) to place the
+    /// limb
     pub attach_position: Vec2,
     /// The orientation of the limb relative to its attached face
     pub orientation: Quat,
@@ -107,7 +114,7 @@ impl LimbRelativePlacement {
     pub fn create_transform(&self, parent: Transform) -> LimbPosition {
         let actual_orientation = self.attach_face.orientation() * self.orientation;
 
-        let orientation = parent.rotation * actual_orientation; 
+        let orientation = parent.rotation * actual_orientation;
         let attach_point = parent.scale * (self.attach_face.direction() + self.attach_face.on_tangent_plane(self.attach_position));
         let local_anchor = parent.scale * self.scale * Vec3::NEG_Y;
 
@@ -116,9 +123,7 @@ impl LimbRelativePlacement {
         let global_translation = global_attach_point + to_body_mid * (parent.scale * self.scale).dot(Vec3::Y);
 
         LimbPosition {
-            transform: Transform::from_translation(global_translation)
-                .with_rotation(orientation)
-                .with_scale(parent.scale * self.scale),
+            transform: Transform::from_translation(global_translation).with_rotation(orientation).with_scale(parent.scale * self.scale),
             parent_local_anchor: attach_point,
             local_anchor,
         }

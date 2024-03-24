@@ -5,11 +5,14 @@ use data_structure_utils::graphs::directed::{DirectedGraph, NodeID};
 use rand::{rngs::ThreadRng, Rng};
 use rand_distr::Normal;
 
-use self::{node::{MutateNodeParams, MutateNode, RandomNodeParams}, edge::{MutateEdgeParams, MutateEdge, RandomEdgeParams}};
+use self::{
+    edge::{MutateEdge, MutateEdgeParams, RandomEdgeParams},
+    node::{MutateNode, MutateNodeParams, RandomNodeParams},
+};
 
-pub mod node;
 pub mod edge;
 pub mod expr;
+pub mod node;
 
 
 pub struct MutateFieldParams {
@@ -23,34 +26,36 @@ pub struct MutateFieldParams {
 
 impl MutateFieldParams {
     pub fn new(freq: f32, mean: f32, std_dev: f32) -> Result<Self, rand_distr::NormalError> {
-        Ok(Self {
-            f: freq,
-            d: Normal::new(mean, std_dev)?,
-            range: None,
-        })
+        Ok(Self { f: freq, d: Normal::new(mean, std_dev)?, range: None })
     }
+
     pub fn in_range(mut self, range: Range<f32>) -> Self {
         self.range = Some(range);
         self
     }
+
     pub fn set_scale(&mut self, inv_scale: f32) {
         self.f *= inv_scale;
     }
+
     pub fn sample(&self, rng: &mut ThreadRng) -> f32 {
         match &self.range {
             Some(range) => rng.sample(self.d).clamp(range.start, range.end),
-            None => rng.sample(self.d)
+            None => rng.sample(self.d),
         }
     }
+
     pub fn mutate(&self, rng: &mut ThreadRng, old: f32) -> f32 {
         match &self.range {
             Some(range) => (rng.sample(self.d) + old).clamp(range.start, range.end),
-            None => rng.sample(self.d) + old
+            None => rng.sample(self.d) + old,
         }
     }
+
     pub fn change(&self, rng: &mut ThreadRng) -> bool {
         rng.gen_bool(self.f as f64)
     }
+
     pub fn change_scaled(&self, rng: &mut ThreadRng, scale: f32) -> bool {
         rng.gen_bool((self.f / scale) as f64)
     }
@@ -73,7 +78,7 @@ impl RandomMorphologyParams {
         }
 
         let n_nodes = graph.nodes.len();
-        let node_ids: Vec<_> = graph.nodes.keys().map(|v| *v).collect();
+        let node_ids: Vec<_> = graph.nodes.keys().copied().collect();
 
         for _ in 0..rng.gen_range(self.edges.clone()) {
             graph.add_edge(self.rand_edge.build_edge(rng), node_ids[rng.gen_range(0..n_nodes)], node_ids[rng.gen_range(0..n_nodes)]);
@@ -84,27 +89,19 @@ impl RandomMorphologyParams {
             connected_nodes.insert(edge.from);
             connected_nodes.insert(edge.to);
         }
-        for node in graph.nodes.keys().map(|v| *v).collect::<Vec<NodeID>>().iter() {
+        for node in graph.nodes.keys().copied().collect::<Vec<NodeID>>().iter() {
             if !connected_nodes.contains(node) {
                 graph.remove_node(*node);
             }
         }
-        
-        CreatureMorphologyGraph {
-            graph,
-            creature
-        }
+
+        CreatureMorphologyGraph { graph, creature }
     }
 }
 
 impl Default for RandomMorphologyParams {
     fn default() -> Self {
-        Self {
-            rand_node: RandomNodeParams::default(),
-            rand_edge: RandomEdgeParams::default(),
-            nodes: 3..6,
-            edges: 2..4
-        }
+        Self { rand_node: RandomNodeParams::default(), rand_edge: RandomEdgeParams::default(), nodes: 3..6, edges: 2..4 }
     }
 }
 
@@ -120,7 +117,8 @@ pub struct MutateMorphologyParams {
     pub edge_del_freq: f32,
     /// The frequency at which edges are added
     pub edge_add_freq: f32,
-    /// The inverse scale at which the sizes of creatures reduce the frequency of mutations
+    /// The inverse scale at which the sizes of creatures reduce the frequency
+    /// of mutations
     pub size_inv_scale: f32,
 }
 
@@ -176,17 +174,20 @@ impl<'a> MutateMorphology<'a> {
     pub fn inner(&'a self) -> &'a CreatureMorphologyGraph {
         self.morph
     }
+
     pub fn into_inner(self) -> &'a CreatureMorphologyGraph {
         self.morph
     }
 
     pub fn mutate(&mut self) {
         let scale = self.params.size_inv_scale * self.morph.nodes_len() as f32;
-        if scale != 0.0 { self.params.set_scale(1.0 / scale) };
-        
+        if scale != 0.0 {
+            self.params.set_scale(1.0 / scale)
+        };
+
         // Step 1: each node's internal parameters can mutate
         for node in self.morph.nodes_mut() {
-            let mut mutate = MutateNode::new(&mut node.data, &mut self.rng, &self.params.node);
+            let mut mutate = MutateNode::new(&mut node.data, self.rng, &self.params.node);
             mutate.mutate();
         }
 
@@ -197,7 +198,7 @@ impl<'a> MutateMorphology<'a> {
         let n_nodes = self.morph.nodes_len();
         let node_ids = self.morph.node_ids();
         for edge in self.morph.edges_mut() {
-            let mut mutate = MutateEdge::new(&mut edge.data, &mut self.rng, &self.params.edge);
+            let mut mutate = MutateEdge::new(&mut edge.data, self.rng, &self.params.edge);
             mutate.mutate();
             if self.rng.gen_bool(self.params.edge_change_freq as f64) {
                 edge.from = node_ids[self.rng.gen_range(0..n_nodes)];
@@ -233,12 +234,14 @@ impl<'a> MutateMorphology<'a> {
             }
         }
 
-        if scale != 0.0 { self.params.set_scale(scale) };
+        if scale != 0.0 {
+            self.params.set_scale(scale)
+        };
     }
 }
 
-impl<'a> Into<&'a CreatureMorphologyGraph> for MutateMorphology<'a> {
-    fn into(self) -> &'a CreatureMorphologyGraph {
-        self.into_inner()
+impl<'a> From<MutateMorphology<'a>> for &'a CreatureMorphologyGraph {
+    fn from(val: MutateMorphology<'a>) -> Self {
+        val.into_inner()
     }
 }

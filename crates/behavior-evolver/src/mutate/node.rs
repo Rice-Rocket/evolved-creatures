@@ -29,13 +29,7 @@ impl RandomNodeParams {
 
 impl Default for RandomNodeParams {
     fn default() -> Self {
-        Self {
-            density: 0.5..3.0,
-            friction: 0.1..0.9,
-            restitution: 0.1..0.9,
-            terminal_freq: 0.2,
-            recursive_limit: 1..6
-        }
+        Self { density: 0.5..3.0, friction: 0.1..0.9, restitution: 0.1..0.9, terminal_freq: 0.2, recursive_limit: 1..6 }
     }
 }
 
@@ -69,26 +63,28 @@ impl<'a> MutateNode<'a> {
     pub fn new(node: &'a mut LimbNode, rng: &'a mut ThreadRng, params: &'a MutateNodeParams) -> Self {
         Self { node, rng, params }
     }
-    
+
     pub fn inner(&'a self) -> &'a LimbNode {
         self.node
     }
+
     pub fn into_inner(self) -> &'a LimbNode {
         self.node
     }
 
     pub fn mutate(&mut self) {
-        if self.params.density.change(&mut self.rng) {
-            self.node.density = self.params.density.mutate(&mut self.rng, self.node.density);
-        }; 
-        if self.params.friction.change(&mut self.rng) {
-            self.node.friction = self.params.friction.mutate(&mut self.rng, self.node.friction);
-        }; 
-        if self.params.restitution.change(&mut self.rng) {
-            self.node.restitution = self.params.restitution.mutate(&mut self.rng, self.node.restitution);
-        }; 
-        if self.params.recursive.change(&mut self.rng) {
-            self.node.recursive_limit = (self.node.recursive_limit as isize + self.params.recursive.sample(&mut self.rng) as isize).max(1) as usize
+        if self.params.density.change(self.rng) {
+            self.node.density = self.params.density.mutate(self.rng, self.node.density);
+        };
+        if self.params.friction.change(self.rng) {
+            self.node.friction = self.params.friction.mutate(self.rng, self.node.friction);
+        };
+        if self.params.restitution.change(self.rng) {
+            self.node.restitution = self.params.restitution.mutate(self.rng, self.node.restitution);
+        };
+        if self.params.recursive.change(self.rng) {
+            self.node.recursive_limit =
+                (self.node.recursive_limit as isize + self.params.recursive.sample(self.rng) as isize).max(1) as usize
         };
         if self.rng.gen_bool(self.params.terminal_freq as f64) {
             self.node.terminal_only = !self.node.terminal_only
@@ -96,8 +92,8 @@ impl<'a> MutateNode<'a> {
     }
 }
 
-impl<'a> Into<&'a LimbNode> for MutateNode<'a> {
-    fn into(self) -> &'a LimbNode {
-        self.into_inner()
+impl<'a> From<MutateNode<'a>> for &'a LimbNode {
+    fn from(val: MutateNode<'a>) -> Self {
+        val.into_inner()
     }
 }

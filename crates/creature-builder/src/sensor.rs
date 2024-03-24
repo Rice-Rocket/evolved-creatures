@@ -1,15 +1,21 @@
-use std::{collections::HashMap, ops::{Index, IndexMut}};
+use std::{
+    collections::HashMap,
+    ops::{Index, IndexMut},
+};
 
-use bevy::{prelude::*, ecs::system::SystemParam};
+use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::{config::{ActiveCollisionTypes, CreatureBuilderConfig}, builder::placement::LimbAttachFace};
+use crate::{
+    builder::placement::LimbAttachFace,
+    config::{ActiveCollisionTypes, CreatureBuilderConfig},
+};
 
 
 #[derive(PartialEq, Eq, Clone, Copy, Component, Debug)]
 pub enum ContactFilterTag {
     GroundGroup,
-    LimbGroup
+    LimbGroup,
 }
 
 
@@ -21,6 +27,7 @@ pub struct LimbCollisionSensor {
 
 impl Index<LimbAttachFace> for LimbCollisionSensor {
     type Output = LimbCollisionType;
+
     fn index(&self, index: LimbAttachFace) -> &Self::Output {
         &self.faces[index.index()]
     }
@@ -37,7 +44,7 @@ impl IndexMut<LimbAttachFace> for LimbCollisionSensor {
 pub enum LimbCollisionType {
     SelfCollision,
     GroundCollision,
-    None
+    None,
 }
 
 
@@ -49,9 +56,9 @@ pub struct ContactFilter<'w, 's> {
 
 impl BevyPhysicsHooks for ContactFilter<'_, '_> {
     fn filter_contact_pair(&self, context: PairFilterContextView) -> Option<SolverFlags> {
-        let Some(tag1) = self.tags.get(context.collider1()).ok().copied() else { return None };
-        let Some(tag2) = self.tags.get(context.collider2()).ok().copied() else { return None };
-        
+        let tag1 = self.tags.get(context.collider1()).ok().copied()?;
+        let tag2 = self.tags.get(context.collider2()).ok().copied()?;
+
         let mut limb_ground_collision = false;
         let mut limb_limb_collision = false;
         if tag1 == ContactFilterTag::LimbGroup && tag2 == ContactFilterTag::LimbGroup {
@@ -66,9 +73,9 @@ impl BevyPhysicsHooks for ContactFilter<'_, '_> {
             limb_ground_collision = true;
         }
 
-        if limb_ground_collision && self.config.collision_types.contains(ActiveCollisionTypes::LIMB_VS_GROUND) {
-            Some(SolverFlags::COMPUTE_IMPULSES)
-        } else if limb_limb_collision && self.config.collision_types.contains(ActiveCollisionTypes::LIMB_VS_LIMB) {
+        if (limb_ground_collision && self.config.collision_types.contains(ActiveCollisionTypes::LIMB_VS_GROUND))
+            || (limb_limb_collision && self.config.collision_types.contains(ActiveCollisionTypes::LIMB_VS_LIMB))
+        {
             Some(SolverFlags::COMPUTE_IMPULSES)
         } else {
             Some(SolverFlags::empty())
@@ -87,7 +94,7 @@ pub(crate) fn update_sensor_status(
         if let CollisionEvent::Started(entity_1, entity_2, _flags) = collision_event {
             let Some(contact_pair) = context.contact_pair(*entity_1, *entity_2) else { continue };
             let (_contact_manifold, contact_view) = contact_pair.find_deepest_contact().unwrap();
-            
+
             let face_1 = LimbAttachFace::from_point(contact_view.local_p1());
             let face_2 = LimbAttachFace::from_point(contact_view.local_p2());
 
@@ -96,32 +103,30 @@ pub(crate) fn update_sensor_status(
 
             if *tag_1 == ContactFilterTag::LimbGroup && *tag_2 == ContactFilterTag::GroundGroup {
                 let Ok(mut sensor) = sensors.get_mut(*entity_1) else { continue };
-                sensor[face_1.clone()] = LimbCollisionType::GroundCollision;
-                sensor.entities.insert(*entity_2, face_1.clone());
+                sensor[face_1] = LimbCollisionType::GroundCollision;
+                sensor.entities.insert(*entity_2, face_1);
             }
             if *tag_2 == ContactFilterTag::LimbGroup && *tag_1 == ContactFilterTag::GroundGroup {
                 let Ok(mut sensor) = sensors.get_mut(*entity_2) else { continue };
-                sensor[face_2.clone()] = LimbCollisionType::GroundCollision;
-                sensor.entities.insert(*entity_1, face_1.clone());
+                sensor[face_2] = LimbCollisionType::GroundCollision;
+                sensor.entities.insert(*entity_1, face_1);
             }
             if *tag_1 == ContactFilterTag::LimbGroup && *tag_2 == ContactFilterTag::LimbGroup {
                 let Ok(mut sensor_1) = sensors.get_mut(*entity_1) else { continue };
-                sensor_1[face_1.clone()] = LimbCollisionType::SelfCollision;
+                sensor_1[face_1] = LimbCollisionType::SelfCollision;
                 sensor_1.entities.insert(*entity_2, face_1);
                 let Ok(mut sensor_2) = sensors.get_mut(*entity_2) else { continue };
-                sensor_2[face_2.clone()] = LimbCollisionType::SelfCollision;
+                sensor_2[face_2] = LimbCollisionType::SelfCollision;
                 sensor_2.entities.insert(*entity_1, face_2);
             }
-        }
-
-        else if let CollisionEvent::Stopped(entity_1, entity_2, _flags) = collision_event {
+        } else if let CollisionEvent::Stopped(entity_1, entity_2, _flags) = collision_event {
             if let Ok(mut sensor_1) = sensors.get_mut(*entity_1) {
-                let contact_face = sensor_1.entities.get(entity_2).unwrap().clone();
+                let contact_face = *sensor_1.entities.get(entity_2).unwrap();
                 sensor_1[contact_face] = LimbCollisionType::None;
                 sensor_1.entities.remove(entity_2);
             }
             if let Ok(mut sensor_2) = sensors.get_mut(*entity_2) {
-                let contact_face = sensor_2.entities.get(entity_1).unwrap().clone();
+                let contact_face = *sensor_2.entities.get(entity_1).unwrap();
                 sensor_2[contact_face] = LimbCollisionType::None;
                 sensor_2.entities.remove(entity_1);
             }

@@ -1,18 +1,9 @@
 use bevy::prelude::*;
 
 
-
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct CreatureBuilderConfig {
     pub collision_types: ActiveCollisionTypes,
-}
-
-impl Default for CreatureBuilderConfig {
-    fn default() -> Self {
-        Self {
-            collision_types: ActiveCollisionTypes::default()
-        }
-    }
 }
 
 

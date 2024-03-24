@@ -1,7 +1,6 @@
-use bevy::{prelude::*, ecs::schedule::ScheduleLabel};
+use bevy::{ecs::schedule::ScheduleLabel, prelude::*};
 
 use crate::prelude::initialize_bodies;
-
 
 
 #[derive(ScheduleLabel, Debug, Hash, PartialEq, Eq, Clone)]
@@ -48,12 +47,15 @@ impl RigidBodySimulationSettings {
     pub fn pause(&mut self) {
         self.running = false;
     }
+
     pub fn pause_for(&mut self, seconds: f32) {
         self.pause_countdown = seconds;
     }
+
     pub fn play(&mut self) {
         self.running = true;
     }
+
     pub fn step(&mut self) {
         self.queued_steps += 1;
     }
@@ -69,20 +71,18 @@ pub(crate) fn run_physics_sim_schedule(world: &mut World) {
         let mut sim_settings = world.resource_mut::<RigidBodySimulationSettings>();
         sim_settings.sub_dt = if sim_settings.running {
             dt / sim_settings.num_substeps as f32 * sim_settings.speed
+        } else if sim_settings.queued_steps > 0 {
+            sim_settings.queued_steps -= 1;
+            sim_settings.step_dt / sim_settings.num_substeps as f32
         } else {
-            if sim_settings.queued_steps > 0 {
-                sim_settings.queued_steps -= 1;
-                sim_settings.step_dt / sim_settings.num_substeps as f32
-            } else {
-                return
-            }
+            return;
         };
 
         if sim_settings.pause_countdown > 0.0 {
             sim_settings.pause_countdown -= dt;
             return;
         }
-        
+
         if !sim_settings.initialized {
             sim_settings.initialized = true;
             let init_bodies_system = world.register_system(initialize_bodies);
@@ -95,7 +95,7 @@ pub(crate) fn run_physics_sim_schedule(world: &mut World) {
     if elapsed < sim_settings.startup_time_buffer {
         return;
     }
-    
+
     for _ in 0..sim_settings.num_substeps {
         world.run_schedule(RigidBodySimulationSchedule);
     }

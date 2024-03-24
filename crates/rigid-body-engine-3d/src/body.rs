@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 
-
 #[derive(Bundle, Clone, Default)]
 pub struct RigidBodyObject {
     pub state: RigidBodyState,
@@ -63,29 +62,31 @@ impl RigidBodyProperties {
 
         orientation * rt
     }
+
     pub(crate) fn inverse_moment_quat(&self, orientation: Quat) -> Mat3 {
         let r = Mat3::from_quat(orientation);
         self.inverse_moment_mat(r)
     }
 }
 
-pub(crate) fn initialize_bodies(
-    mut bodies: Query<&mut RigidBodyProperties>
-) {
+pub(crate) fn initialize_bodies(mut bodies: Query<&mut RigidBodyProperties>) {
     for mut props in bodies.iter_mut() {
         props.moments = Some(props.scale.normalize());
 
         let mut vertices = Vec::new();
-        for (local_up, local_x, local_y) in [
-            (Vec3::Y, 0, 2), (Vec3::NEG_Y, 0, 2), (Vec3::X, 2, 1), 
-            (Vec3::NEG_X, 2, 1), (Vec3::Z, 1, 0), (Vec3::NEG_Z, 1, 0)
-        ] {
+        for (local_up, local_x, local_y) in
+            [(Vec3::Y, 0, 2), (Vec3::NEG_Y, 0, 2), (Vec3::X, 2, 1), (Vec3::NEG_X, 2, 1), (Vec3::Z, 1, 0), (Vec3::NEG_Z, 1, 0)]
+        {
             let axis_a = Vec3::new(local_up.y, local_up.z, local_up.x);
             let axis_b = local_up.cross(axis_a);
 
             for x in 0..props.collision_point_density[local_x] {
                 for y in 0..props.collision_point_density[local_y] {
-                    let uv = Vec2::new(x as f32, y as f32) / Vec2::new(props.collision_point_density[local_x] as f32 - 1.0, props.collision_point_density[local_y] as f32 - 1.0);
+                    let uv = Vec2::new(x as f32, y as f32)
+                        / Vec2::new(
+                            props.collision_point_density[local_x] as f32 - 1.0,
+                            props.collision_point_density[local_y] as f32 - 1.0,
+                        );
                     let p = local_up * 0.5 + (uv.x - 0.5) * axis_a + (uv.y - 0.5) * axis_b;
 
                     if !vertices.contains(&p) {
@@ -119,6 +120,7 @@ impl RigidBodyState {
     pub fn localize(&self, point: Vec3) -> Vec3 {
         self.orientation.inverse() * (point - self.position)
     }
+
     pub fn globalize(&self, point: Vec3) -> Vec3 {
         (self.orientation * point) + self.position
     }
@@ -126,6 +128,7 @@ impl RigidBodyState {
     pub fn localize_bivec(&self, dir: Vec3) -> Vec3 {
         self.orientation.inverse() * dir
     }
+
     pub fn globalize_bivec(&self, dir: Vec3) -> Vec3 {
         self.orientation * dir
     }
@@ -139,30 +142,22 @@ impl RigidBodyState {
     pub fn sdf_gradient(&self, point: Vec3, scale: Vec3) -> Vec3 {
         let p = self.localize(point);
         let w = p.abs() - scale / 2.0;
-        let s = Vec3::new(
-            if p.x < 0.0 { -1.0 } else { 1.0 },
-            if p.y < 0.0 { -1.0 } else { 1.0 },
-            if p.z < 0.0 { -1.0 } else { 1.0 },
-        );
+        let s = Vec3::new(if p.x < 0.0 { -1.0 } else { 1.0 }, if p.y < 0.0 { -1.0 } else { 1.0 }, if p.z < 0.0 { -1.0 } else { 1.0 });
 
         let g = w.max_element();
         let q = w.max(Vec3::ZERO);
         let l = q.length();
 
-        return self.orientation * (s * (
-            if g > 0.0 { q / l }
-            else {
-                if w.x > w.y && w.x > w.z {
-                    Vec3::X
-                } else {
-                    if w.y > w.z {
-                        Vec3::Y
-                    } else {
-                        Vec3::Z
-                    }
-                }
-            }
-        ));
+        self.orientation
+            * (s * (if g > 0.0 {
+                q / l
+            } else if w.x > w.y && w.x > w.z {
+                Vec3::X
+            } else if w.y > w.z {
+                Vec3::Y
+            } else {
+                Vec3::Z
+            }))
     }
 
     pub fn exterior_point(&self, point: Vec3, scale: Vec3) -> Vec3 {
