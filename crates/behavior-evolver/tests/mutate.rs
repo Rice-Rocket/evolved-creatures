@@ -1,7 +1,19 @@
-use behavior_evolver::mutate::{node::{MutateNode, MutateNodeParams}, MutateFieldParams, edge::{MutateEdgeParams, MutateEdge}, MutateMorphology, MutateMorphologyParams, RandomMorphologyParams, expr::{RandomExprParams, MutateExprParams, MutateExpr}};
-use bevy::math::{Vec2, Quat, Vec3};
+use behavior_evolver::mutate::{
+    edge::{MutateEdge, MutateEdgeParams},
+    expr::{MutateExpr, MutateExprParams, RandomExprParams},
+    node::{MutateNode, MutateNodeParams},
+    MutateFieldParams, MutateMorphology, MutateMorphologyParams, RandomMorphologyParams,
+};
+use bevy::math::{Quat, Vec2, Vec3};
 use bevy_rapier3d::dynamics::JointAxesMask;
-use creature_builder::{builder::{node::{LimbNode, LimbConnection}, placement::{LimbRelativePlacement, LimbAttachFace}}, effector::CreatureJointEffectors, CreatureId};
+use creature_builder::{
+    builder::{
+        node::{LimbConnection, LimbNode},
+        placement::{LimbAttachFace, LimbRelativePlacement},
+    },
+    effector::CreatureJointEffectors,
+    CreatureId,
+};
 
 
 #[test]
@@ -30,17 +42,15 @@ fn node() -> Result<(), rand_distr::NormalError> {
 fn edge() -> Result<(), rand_distr::NormalError> {
     let mut rng = rand::thread_rng();
     let mut edge = LimbConnection {
-        placement: LimbRelativePlacement { attach_face: LimbAttachFace::PosX, attach_position: Vec2::new(0.5, -0.3), orientation: Quat::from_rotation_x(0.5), scale: Vec3::ONE }, 
+        placement: LimbRelativePlacement {
+            attach_face: LimbAttachFace::PosX,
+            attach_position: Vec2::new(0.5, -0.3),
+            orientation: Quat::from_rotation_x(0.5),
+            scale: Vec3::ONE,
+        },
         locked_axes: JointAxesMask::LIN_AXES,
         limit_axes: [[0.5, 0.5]; 6],
-        effectors: CreatureJointEffectors::new([
-            None,
-            None,
-            None,
-            None,
-            None,
-            None
-        ])
+        effectors: CreatureJointEffectors::new([None, None, None, None, None, None]),
     };
     let params = MutateEdgeParams {
         placement_face_freq: 0.5,
@@ -69,9 +79,14 @@ fn expr() {
 
     let mut mutate = MutateExpr::new(&mut expr, &mut rng, &mut params);
 
-    for _ in 0..20 {
+    let mut prev_val = 0;
+    for _ in 0..10000 {
         mutate.mutate();
-        println!("{:?}", mutate.inner());
+        let val = MutateExpr::<'_>::get_expr_size(&Box::new(mutate.expr.root.clone()));
+        if prev_val != val {
+            println!("{:?}", val)
+        }
+        prev_val = val;
     }
 }
 
