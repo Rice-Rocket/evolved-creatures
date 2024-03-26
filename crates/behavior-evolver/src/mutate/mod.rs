@@ -1,12 +1,14 @@
 use std::{collections::HashSet, ops::Range};
 
-use creature_builder::{builder::node::CreatureMorphologyGraph, CreatureId};
+use bevy_rapier3d::dynamics::JointAxesMask;
+use creature_builder::{builder::node::CreatureMorphologyGraph, effector::CreatureJointEffector, CreatureId};
 use data_structure_utils::graphs::directed::{DirectedGraph, NodeID};
 use rand::{rngs::ThreadRng, Rng};
 use rand_distr::Normal;
 
 use self::{
     edge::{MutateEdge, MutateEdgeParams, RandomEdgeParams},
+    expr::{MutateExpr, MutateExprParams, RandomExprParams},
     node::{MutateNode, MutateNodeParams, RandomNodeParams},
 };
 
@@ -65,6 +67,7 @@ impl MutateFieldParams {
 pub struct RandomMorphologyParams {
     pub rand_node: RandomNodeParams,
     pub rand_edge: RandomEdgeParams,
+    pub rand_expr: RandomExprParams,
     pub nodes: Range<usize>,
     pub edges: Range<usize>,
 }
@@ -95,13 +98,31 @@ impl RandomMorphologyParams {
             }
         }
 
-        CreatureMorphologyGraph { graph, creature }
+        let mut morph = CreatureMorphologyGraph { graph, creature };
+
+        let n_joints = morph.edges_len();
+        let rand_expr = self.rand_expr.clone().with_joint_count(n_joints);
+        for edge in morph.edges_mut() {
+            for (i, expr) in edge.data.effectors.effectors.iter_mut().enumerate() {
+                if edge.data.locked_axes.contains(JointAxesMask::from_bits(1 << i).unwrap()) {
+                    *expr = Some(CreatureJointEffector { expr: rand_expr.build_expr(rng) });
+                }
+            }
+        }
+
+        morph
     }
 }
 
 impl Default for RandomMorphologyParams {
     fn default() -> Self {
-        Self { rand_node: RandomNodeParams::default(), rand_edge: RandomEdgeParams::default(), nodes: 3..6, edges: 2..4 }
+        Self {
+            rand_node: RandomNodeParams::default(),
+            rand_edge: RandomEdgeParams::default(),
+            rand_expr: RandomExprParams::default(),
+            nodes: 3..6,
+            edges: 2..4,
+        }
     }
 }
 
@@ -109,6 +130,7 @@ impl Default for RandomMorphologyParams {
 pub struct MutateMorphologyParams {
     pub node: MutateNodeParams,
     pub edge: MutateEdgeParams,
+    pub expr: MutateExprParams,
     pub rand_node: RandomNodeParams,
     pub rand_edge: RandomEdgeParams,
     /// The frequency at which edges choose a new node to point to
@@ -117,6 +139,7 @@ pub struct MutateMorphologyParams {
     pub edge_del_freq: f32,
     /// The frequency at which edges are added
     pub edge_add_freq: f32,
+    pub expr_mut_freq: f32,
     /// The inverse scale at which the sizes of creatures reduce the frequency
     /// of mutations
     pub size_inv_scale: f32,
@@ -149,11 +172,13 @@ impl Default for MutateMorphologyParams {
                 placement_scale: MutateFieldParams::new(0.1, 0.0, 0.075).unwrap().in_range(0.05..20.0),
                 limit_axes: MutateFieldParams::new(0.2, 0.0, 0.03).unwrap(),
             },
+            expr: MutateExprParams::default(),
             rand_node: RandomNodeParams::default(),
             rand_edge: RandomEdgeParams::default(),
             edge_change_freq: 0.1,
             edge_del_freq: 0.1,
             edge_add_freq: 0.1,
+            expr_mut_freq: 0.15,
             size_inv_scale: 1.0,
         }
     }
@@ -237,6 +262,21 @@ impl<'a> MutateMorphology<'a> {
         if scale != 0.0 {
             self.params.set_scale(scale)
         };
+
+        // Step 6: mutate nested expr graphs
+        let n_joints = self.morph.edges_len();
+        let mut_freq = self.params.expr_mut_freq / self.morph.edges_len() as f32;
+        for edge in self.morph.edges_mut() {
+            let freq_adjusted = mut_freq / edge.data.effectors.effectors.iter().filter(|x| x.is_some()).count() as f32;
+            for expr_opt in edge.data.effectors.effectors.iter_mut() {
+                let Some(expr) = expr_opt else { continue };
+                if self.rng.gen_bool(freq_adjusted as f64) {
+                    let mut mutate = MutateExpr::new(&mut expr.expr, self.rng, &mut self.params.expr);
+                    mutate.set_joint_count(n_joints);
+                    mutate.mutate();
+                }
+            }
+        }
     }
 }
 

@@ -21,6 +21,7 @@ use crate::{
 pub struct LimbConnection {
     pub placement: LimbRelativePlacement,
     pub locked_axes: JointAxesMask,
+    /// Ordered: [X, Y, Z, AngX, AngY, AngZ]
     pub limit_axes: [[f32; 2]; 6],
     pub effectors: CreatureJointEffectors,
 }

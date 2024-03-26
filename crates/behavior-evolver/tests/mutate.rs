@@ -80,7 +80,7 @@ fn expr() {
     let mut mutate = MutateExpr::new(&mut expr, &mut rng, &mut params);
 
     let mut prev_val = 0;
-    for _ in 0..10000 {
+    for _ in 0..1000 {
         mutate.mutate();
         let val = MutateExpr::<'_>::get_expr_size(&Box::new(mutate.expr.root.clone()));
         if prev_val != val {
@@ -99,8 +99,19 @@ fn morph() {
 
     let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
 
-    for _ in 0..20 {
+    let mut prev = 0;
+    for _ in 0..1000 {
         mutate.mutate();
-        println!("{:?}", mutate.inner().edges_len());
+        let val = match mutate.morph.graph.edges.values().last().unwrap().data.effectors.effectors.iter().find(|x| x.is_some()) {
+            Some(v) => MutateExpr::<'_>::get_expr_size(&Box::new(v.clone().unwrap().expr.root)),
+            None => {
+                println!("None!");
+                0
+            },
+        };
+        if prev != val {
+            println!("{:?}", val)
+        }
+        prev = val;
     }
 }

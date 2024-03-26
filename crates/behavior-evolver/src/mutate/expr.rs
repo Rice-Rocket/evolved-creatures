@@ -15,6 +15,7 @@ use rand::{rngs::ThreadRng, Rng};
 use super::MutateFieldParams;
 
 
+#[derive(Clone)]
 pub struct RandomExprParams {
     pub value_weight: usize,
     pub const_weight: usize,

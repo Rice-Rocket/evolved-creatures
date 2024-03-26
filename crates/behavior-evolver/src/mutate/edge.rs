@@ -7,12 +7,12 @@ use creature_builder::{
         node::LimbConnection,
         placement::{LimbAttachFace, LimbRelativePlacement},
     },
-    effector::CreatureJointEffectors,
+    effector::{CreatureJointEffector, CreatureJointEffectors},
 };
 use rand::{rngs::ThreadRng, Rng};
 use rand_distr::Normal;
 
-use super::MutateFieldParams;
+use super::{expr::RandomExprParams, MutateFieldParams};
 
 
 pub struct RandomEdgeParams {
@@ -20,6 +20,7 @@ pub struct RandomEdgeParams {
     pub placement_scale: Range<f32>,
     pub lock_front_rot: bool,
     pub limit_axes: Range<f32>,
+    pub rand_expr: RandomExprParams,
 }
 
 impl RandomEdgeParams {
@@ -49,14 +50,27 @@ impl RandomEdgeParams {
             },
             locked_axes: JointAxesMask::LIN_AXES,
             limit_axes,
-            effectors: CreatureJointEffectors::new([None, None, None, None, None, None]),
+            effectors: CreatureJointEffectors::new([
+                None,
+                None,
+                None,
+                Some(CreatureJointEffector { expr: self.rand_expr.build_expr(rng) }),
+                Some(CreatureJointEffector { expr: self.rand_expr.build_expr(rng) }),
+                Some(CreatureJointEffector { expr: self.rand_expr.build_expr(rng) }),
+            ]),
         }
     }
 }
 
 impl Default for RandomEdgeParams {
     fn default() -> Self {
-        Self { placement_pos: -1f32..1f32, placement_scale: 0.5..2.0, lock_front_rot: true, limit_axes: 0f32..std::f32::consts::PI }
+        Self {
+            placement_pos: -1f32..1f32,
+            placement_scale: 0.5..2.0,
+            lock_front_rot: true,
+            limit_axes: 0f32..std::f32::consts::PI,
+            rand_expr: RandomExprParams::default(),
+        }
     }
 }
 

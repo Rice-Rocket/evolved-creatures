@@ -16,6 +16,7 @@ use crate::{
 
 #[derive(Component, Clone, Debug, Default)]
 pub struct CreatureJointEffectors {
+    /// Ordered: [X, Y, Z, AngX, AngY, AngZ]
     pub effectors: [Option<CreatureJointEffector>; 6],
 }
 
