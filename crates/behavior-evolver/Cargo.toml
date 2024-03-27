@@ -26,3 +26,8 @@ harness = false
 name = "mutate"
 path = "tests/mutate.rs"
 harness = true
+
+[[test]]
+name = "evolve"
+path = "tests/evolve.rs"
+harness = false

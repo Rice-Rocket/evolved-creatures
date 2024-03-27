@@ -1,4 +1,2 @@
 /target
-notes.txt
-*.DS_Store
-/.vscode
+.DS_Store
