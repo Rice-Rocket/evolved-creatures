@@ -94,24 +94,22 @@ fn expr() {
 #[test]
 fn morph() {
     let mut rng = rand::thread_rng();
-    let mut morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
-    let mut params = MutateMorphologyParams::default();
 
-    let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
+    for _ in 0..10000 {
+        let mut morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
+        let mut params = MutateMorphologyParams::default();
 
-    let mut prev = 0;
-    for _ in 0..1000 {
-        mutate.mutate();
-        let val = match mutate.morph.graph.edges.values().last().unwrap().data.effectors.effectors.iter().find(|x| x.is_some()) {
-            Some(v) => MutateExpr::<'_>::get_expr_size(&Box::new(v.clone().unwrap().expr.root)),
-            None => {
-                println!("None!");
-                0
-            },
-        };
-        if prev != val {
-            println!("{:?}", val)
+        let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
+
+        for _ in 0..1000 {
+            mutate.mutate();
+            match mutate.morph.graph.edges.values().last().unwrap().data.effectors.effectors.iter().find(|x| x.is_some()) {
+                Some(v) => MutateExpr::<'_>::get_expr_size(&Box::new(v.clone().unwrap().expr.root)),
+                None => {
+                    println!("None!");
+                    0
+                },
+            };
         }
-        prev = val;
     }
 }

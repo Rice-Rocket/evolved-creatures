@@ -152,6 +152,10 @@ impl<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraph
         self.root_node = Some(id);
     }
 
+    pub fn get_root(&self) -> Option<NodeID> {
+        self.root_node
+    }
+
     /// Borrows a node given its `NodeID`
     pub fn get_node(&self, id: NodeID) -> Option<&DirectedGraphNode<N, E, R, P>> {
         self.nodes.get(&id)

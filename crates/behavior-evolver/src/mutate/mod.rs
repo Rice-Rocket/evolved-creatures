@@ -98,6 +98,9 @@ impl RandomMorphologyParams {
             }
         }
 
+        let n_nodes = graph.nodes.len();
+        let node_ids: Vec<_> = graph.nodes.keys().copied().collect();
+
         let mut morph = CreatureMorphologyGraph { graph, creature };
 
         let n_joints = morph.edges_len();
@@ -110,6 +113,7 @@ impl RandomMorphologyParams {
             }
         }
 
+        morph.set_root(node_ids[rng.gen_range(0..n_nodes)]);
         morph
     }
 }
@@ -234,9 +238,14 @@ impl<'a> MutateMorphology<'a> {
         }
 
         // Step 4: add and remove random edges
+        let graph_root = self.morph.graph.get_root().unwrap();
         for edge in self.morph.edge_ids() {
             if self.morph.edges_len() > 1 && self.rng.gen_bool(self.params.edge_del_freq as f64 / self.morph.edges_len() as f64) {
-                self.morph.remove_edge(edge);
+                let source = self.morph.graph.get_edge(edge).unwrap().from;
+                // ensure root node persists
+                if source != graph_root || self.morph.graph.get_node(graph_root).unwrap().outs.len() <= 1 {
+                    self.morph.remove_edge(edge);
+                }
             }
         }
         let n_nodes = self.morph.nodes_len();
