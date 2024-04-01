@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Stack<T: Clone> {
     stack: Vec<T>,
 }

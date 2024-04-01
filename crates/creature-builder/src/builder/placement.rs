@@ -93,7 +93,7 @@ impl LimbAttachFace {
 
 /// The relative translation, orientation, and scale of a limb in comparison to
 /// its parent
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LimbRelativePlacement {
     pub attach_face: LimbAttachFace,
     /// The percentage along the attach face (in range `[-1, 1]`) to place the

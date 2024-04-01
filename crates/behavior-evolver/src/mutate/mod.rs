@@ -17,6 +17,7 @@ pub mod expr;
 pub mod node;
 
 
+#[derive(Clone)]
 pub struct MutateFieldParams {
     /// The frequency at which this field is changed
     pub f: f32,
@@ -131,6 +132,7 @@ impl Default for RandomMorphologyParams {
 }
 
 
+#[derive(Clone)]
 pub struct MutateMorphologyParams {
     pub node: MutateNodeParams,
     pub edge: MutateEdgeParams,

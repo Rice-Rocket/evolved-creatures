@@ -1,5 +1,6 @@
 pub mod fitness;
 pub mod generation;
+pub mod populate;
 pub mod state;
 
 use std::marker::PhantomData;
@@ -21,7 +22,9 @@ use creature_builder::{
 
 use self::{
     fitness::EvolutionFitnessEval,
-    generation::{test_generation, EvolutionGeneration},
+    generation::{test_generation, EvolutionGeneration, GenerationTestingConfig},
+    populate::{populate_generation, GenerationPopulator},
+    state::EvolutionState,
 };
 
 #[derive(Default)]
@@ -31,7 +34,23 @@ pub struct CreatureEvolutionPlugin<F: EvolutionFitnessEval + Send + Sync + Defau
 
 impl<F: EvolutionFitnessEval + Send + Sync + Default + 'static> Plugin for CreatureEvolutionPlugin<F> {
     fn build(&self, app: &mut App) {
+        app.add_plugins(CreatureEnvironmentPlugin)
+            .add_state::<EvolutionState>()
+            .init_resource::<EvolutionGeneration<F>>()
+            .init_resource::<GenerationPopulator>()
+            .init_resource::<GenerationTestingConfig>()
+            .add_systems(Update, test_generation::<F>)
+            .add_systems(OnEnter(EvolutionState::PopulatingGeneration), populate_generation::<F>);
+    }
+}
+
+
+pub struct CreatureEnvironmentPlugin;
+
+impl Plugin for CreatureEnvironmentPlugin {
+    fn build(&self, app: &mut App) {
         app.add_plugins(CreatureBuilderPlugin)
+            .insert_resource(CreatureBuilderConfig { collision_types: ActiveCollisionTypes::LIMB_VS_GROUND })
             .add_systems(Startup, (setup, setup_ground))
             .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
             .add_plugins(PanOrbitCameraPlugin)
@@ -41,10 +60,7 @@ impl<F: EvolutionFitnessEval + Send + Sync + Default + 'static> Plugin for Creat
             .insert_resource(RapierConfiguration {
                 timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
                 ..default()
-            })
-            .insert_resource(CreatureBuilderConfig { collision_types: ActiveCollisionTypes::LIMB_VS_GROUND })
-            .insert_resource(EvolutionGeneration::<F>::default())
-            .add_systems(Update, test_generation::<F>);
+            });
     }
 }
 

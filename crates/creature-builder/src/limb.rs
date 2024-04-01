@@ -1,17 +1,18 @@
 use std::collections::HashMap;
 
-use bevy_rapier3d::prelude::*;
 use bevy::prelude::*;
+use bevy_rapier3d::prelude::*;
 
-use crate::{CreatureId, sensor::{LimbCollisionSensor, ContactFilterTag, LimbCollisionType}};
-
+use crate::{
+    sensor::{ContactFilterTag, LimbCollisionSensor, LimbCollisionType},
+    CreatureId,
+};
 
 
 #[derive(Component, Clone, Debug)]
 pub struct CreatureLimb {
     pub creature: CreatureId,
 }
-
 
 
 #[derive(Bundle, Clone, Debug)]
@@ -41,7 +42,7 @@ pub struct CreatureLimbBundle {
     pub(crate) material: Handle<StandardMaterial>,
 
     // Transform
-    pub(crate) transform: Transform,
+    pub transform: Transform,
     pub(crate) global_transform: GlobalTransform,
 
     // Visibility
@@ -52,8 +53,6 @@ pub struct CreatureLimbBundle {
     #[bundle(ignore)]
     color: Color,
 }
-
-
 
 
 impl Default for CreatureLimbBundle {
@@ -93,8 +92,6 @@ impl Default for CreatureLimbBundle {
 }
 
 
-
-
 impl CreatureLimbBundle {
     pub fn new() -> Self {
         Self::default()
@@ -105,46 +102,55 @@ impl CreatureLimbBundle {
         self.transform.scale = half_size;
         self
     }
+
     pub fn with_color(mut self, color: Color) -> Self {
         self.color = color;
         self
     }
+
     pub fn with_transform(mut self, transform: Transform) -> Self {
         self.transform = transform;
         self
     }
+
     pub fn with_initial_force(mut self, force: Vec3) -> Self {
         self.impulses.impulse = force;
         self
     }
+
     pub fn with_initial_torque(mut self, torque: Vec3) -> Self {
         self.impulses.torque_impulse = torque;
         self
     }
+
     pub fn with_name(mut self, name: String) -> Self {
         self.name = Name::new(name);
         self
     }
+
     pub fn with_creature(mut self, id: CreatureId) -> Self {
         self.limb.creature = id;
         self
     }
+
     pub fn with_density(mut self, density: f32) -> Self {
         self.mass = ColliderMassProperties::Density(density);
         self
     }
+
     pub fn with_friction(mut self, friction: f32) -> Self {
         self.friction.coefficient = friction;
         self
     }
+
     pub fn with_restitution(mut self, restitution: f32) -> Self {
         self.restitution.coefficient = restitution;
         self
     }
+
     pub fn finish(mut self, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) -> Self {
         self.mesh = meshes.add(Mesh::from(shape::Box::new(2.0, 2.0, 2.0)));
         self.material = materials.add(StandardMaterial::from(self.color));
         self
     }
 }
-

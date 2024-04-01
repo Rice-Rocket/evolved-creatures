@@ -15,6 +15,7 @@ use rand_distr::Normal;
 use super::{expr::RandomExprParams, MutateFieldParams};
 
 
+#[derive(Clone)]
 pub struct RandomEdgeParams {
     pub placement_pos: Range<f32>,
     pub placement_scale: Range<f32>,
@@ -75,6 +76,7 @@ impl Default for RandomEdgeParams {
 }
 
 
+#[derive(Clone)]
 pub struct MutateEdgeParams {
     pub placement_face_freq: f32,
     pub placement_pos: MutateFieldParams,

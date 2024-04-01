@@ -121,14 +121,18 @@ pub(crate) fn update_sensor_status(
             }
         } else if let CollisionEvent::Stopped(entity_1, entity_2, _flags) = collision_event {
             if let Ok(mut sensor_1) = sensors.get_mut(*entity_1) {
-                let contact_face = *sensor_1.entities.get(entity_2).unwrap();
-                sensor_1[contact_face] = LimbCollisionType::None;
-                sensor_1.entities.remove(entity_2);
+                if let Some(contact_face) = sensor_1.entities.get(entity_2) {
+                    let cface = *contact_face;
+                    sensor_1[cface] = LimbCollisionType::None;
+                    sensor_1.entities.remove(entity_2);
+                }
             }
             if let Ok(mut sensor_2) = sensors.get_mut(*entity_2) {
-                let contact_face = *sensor_2.entities.get(entity_1).unwrap();
-                sensor_2[contact_face] = LimbCollisionType::None;
-                sensor_2.entities.remove(entity_1);
+                if let Some(contact_face) = sensor_2.entities.get(entity_1) {
+                    let cface = *contact_face;
+                    sensor_2[cface] = LimbCollisionType::None;
+                    sensor_2.entities.remove(entity_1);
+                }
             }
         }
     }

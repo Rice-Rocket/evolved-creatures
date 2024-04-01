@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use bevy::prelude::*;
 use bevy_rapier3d::dynamics::{GenericJointBuilder, JointAxesMask, JointAxis};
@@ -7,7 +7,6 @@ use data_structure_utils::{
         DirectedGraph, DirectedGraphEdge, DirectedGraphNode, DirectedGraphParameters, DirectedGraphResult, EdgeData, EdgeID, NodeData,
         NodeID,
     },
-    queue::Queue,
     stack::Stack,
 };
 
@@ -17,7 +16,7 @@ use crate::{
 };
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LimbConnection {
     pub placement: LimbRelativePlacement,
     pub locked_axes: JointAxesMask,
@@ -29,7 +28,7 @@ pub struct LimbConnection {
 impl EdgeData for LimbConnection {}
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LimbNode {
     pub name: Option<String>,
     pub density: f32,
@@ -58,12 +57,13 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 };
                 let should_spawn = is_terminal == self.terminal_only;
 
+                // ! Issue here
                 let prev_transform = result.transforms.get(&from_node_id).unwrap().peek().unwrap();
                 let limb_position = edge.placement.create_transform(prev_transform);
                 let prev_limb_id = result.node_limb_ids.get(&from_node_id).unwrap().peek().unwrap();
                 let cur_limb_id = result.current_limb_id;
                 if should_spawn {
-                    result.limb_build_queue.push((
+                    result.limb_build_queue.push_back((
                         CreatureLimbBundle::new()
                             .with_transform(limb_position.transform.with_scale(Vec3::ONE))
                             .with_name(match self.name.clone() {
@@ -76,7 +76,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                             .with_restitution(self.restitution),
                         cur_limb_id,
                     ));
-                    result.joint_build_queue.push((
+                    result.joint_build_queue.push_back((
                         CreatureJointBuilder::new()
                             .with_generic_joint(
                                 GenericJointBuilder::new(edge.locked_axes)
@@ -134,7 +134,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
             },
             _ => {
                 let cur_limb_id = result.current_limb_id;
-                result.limb_build_queue.push((
+                result.limb_build_queue.push_back((
                     CreatureLimbBundle::new()
                         .with_transform(params.root_transform)
                         .with_name(match self.name.clone() {
@@ -181,10 +181,10 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
 }
 
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Clone)]
 pub struct BuildResult {
-    pub limb_build_queue: Queue<(CreatureLimbBundle, usize)>,
-    pub joint_build_queue: Queue<(CreatureJointBuilder, usize, usize)>,
+    pub limb_build_queue: VecDeque<(CreatureLimbBundle, usize)>,
+    pub joint_build_queue: VecDeque<(CreatureJointBuilder, usize, usize)>,
     recursive_limits: HashMap<NodeID, usize>,
     transforms: HashMap<NodeID, Stack<Transform>>,
     node_limb_ids: HashMap<NodeID, Stack<usize>>,
@@ -195,8 +195,8 @@ pub struct BuildResult {
 impl DirectedGraphResult for BuildResult {
     fn initial() -> Self {
         Self {
-            limb_build_queue: Queue::new(),
-            joint_build_queue: Queue::new(),
+            limb_build_queue: VecDeque::new(),
+            joint_build_queue: VecDeque::new(),
             recursive_limits: HashMap::new(),
             transforms: HashMap::new(),
             current_limb_id: 0,
@@ -207,16 +207,35 @@ impl DirectedGraphResult for BuildResult {
 }
 
 impl BuildResult {
+    pub fn align_to_ground(&mut self) {
+        let lowest_limb = self
+            .limb_build_queue
+            .iter()
+            .min_by(|a, b| {
+                a.0.transform
+                    .translation
+                    .y
+                    .partial_cmp(&b.0.transform.translation.y)
+                    .expect("Could not compare transform y values, NAN likely in limb_build_queue")
+            })
+            .expect("limb_build_queue empty")
+            .0
+            .transform;
+
+        let min_y = lowest_limb.translation.y - Vec3::Y.dot(lowest_limb.rotation * lowest_limb.scale).abs();
+        self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= min_y);
+    }
+
     pub fn build(&mut self, commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) {
         let mut entity_ids = HashMap::new();
-        while let Some(limb) = self.limb_build_queue.pop() {
+        while let Some(limb) = self.limb_build_queue.pop_front() {
             let id = commands
                 .spawn(limb.0.with_color(Color::rgba(1.0, 1.0, 1.0, 0.8)).with_creature(self.creature_id).finish(meshes, materials))
                 .id();
             entity_ids.insert(limb.1, id);
         }
 
-        while let Some(joint) = self.joint_build_queue.pop() {
+        while let Some(joint) = self.joint_build_queue.pop_front() {
             let parent = entity_ids.get(&joint.2).unwrap();
             commands
                 .entity(*entity_ids.get(&joint.1).unwrap())
@@ -226,7 +245,7 @@ impl BuildResult {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BuildParameters {
     pub root_transform: Transform,
 }
@@ -234,7 +253,7 @@ pub struct BuildParameters {
 impl DirectedGraphParameters for BuildParameters {}
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CreatureMorphologyGraph {
     pub graph: DirectedGraph<LimbNode, LimbConnection, BuildResult, BuildParameters>,
     pub creature: CreatureId,

@@ -6,6 +6,7 @@ use rand::{rngs::ThreadRng, Rng};
 use super::MutateFieldParams;
 
 
+#[derive(Clone)]
 pub struct RandomNodeParams {
     pub density: Range<f32>,
     pub friction: Range<f32>,
@@ -34,6 +35,7 @@ impl Default for RandomNodeParams {
 }
 
 
+#[derive(Clone)]
 pub struct MutateNodeParams {
     pub density: MutateFieldParams,
     pub friction: MutateFieldParams,

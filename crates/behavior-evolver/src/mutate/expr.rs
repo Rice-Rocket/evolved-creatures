@@ -102,6 +102,7 @@ impl Default for RandomExprParams {
 }
 
 
+#[derive(Clone)]
 pub struct MutateExprParams {
     pub op_change_freq: f32,
     pub op_change_type_freq: f32,
