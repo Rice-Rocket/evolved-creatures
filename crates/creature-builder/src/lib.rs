@@ -85,7 +85,10 @@ fn behavior_main(
         for (i, effector) in effectors.effectors.iter().enumerate() {
             let Some(effector) = effector else { continue };
             let force = effector.expr.evaluate(context);
-            info!("{:?}", force);
+            if !force.0.is_finite() {
+                warn!("Non finite force! ({:?})", force.0);
+                panic!()
+            }
 
             let (axis, rotational) = match i {
                 0 => (Vec3::X, false),

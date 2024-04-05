@@ -54,7 +54,16 @@ impl ExprNode {
         use ExprUnaryOp::*;
 
         let res = match node.clone() {
-            ExprNode::Value(element) => ctx.index(element).map(ExprValue),
+            ExprNode::Value(element) => match ctx.index(element) {
+                Some(v) => {
+                    if v.is_finite() {
+                        Some(ExprValue(v))
+                    } else {
+                        None
+                    }
+                },
+                None => None,
+            },
             ExprNode::Constant(val) => Some(val),
 
             ExprNode::UnaryOp(Sign, a) => Self::visit(&a, ctx).signum(),

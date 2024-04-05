@@ -15,11 +15,16 @@ impl ExprValue {
     }
 
     pub fn modulo(self, rhs: Self) -> Option<Self> {
-        Some(Self(self.0.rem_euclid(rhs.0)))
+        let v = self.0.rem_euclid(rhs.0);
+        if v.is_finite() {
+            Some(Self(v))
+        } else {
+            None
+        }
     }
 
     pub fn gt(self, rhs: Self) -> Option<Self> {
-        Some(Self(if self.0 > rhs.0 { 1.0 } else { 0.0 }))
+        Some(Self(if self.0 > rhs.0 { 1.0 } else { -1.0 }))
     }
 
     pub fn min(self, rhs: Self) -> Option<Self> {
@@ -40,7 +45,7 @@ impl ExprValue {
     }
 
     pub fn if_else(self, a: Self, b: Self) -> Option<Self> {
-        if self.0 == 1.0 {
+        if self.0 > 0.0 {
             Some(a)
         } else {
             Some(b)
@@ -57,7 +62,12 @@ macro_rules! impl_un_op {
     ($fun:ident) => {
         impl ExprValue {
             pub fn $fun(self) -> Option<ExprValue> {
-                Some(ExprValue(self.0.$fun()))
+                let v = self.0.$fun();
+                if v.is_finite() {
+                    Some(ExprValue(v))
+                } else {
+                    None
+                }
             }
         }
     };
