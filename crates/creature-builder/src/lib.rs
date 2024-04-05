@@ -10,7 +10,7 @@ pub mod sensor;
 use std::collections::{hash_map::Entry, HashMap};
 
 use bevy::prelude::*;
-use bevy_rapier3d::dynamics::{ExternalImpulse, ImpulseJoint};
+use bevy_rapier3d::dynamics::{ExternalImpulse, ImpulseJoint, Velocity};
 use config::CreatureBuilderConfig;
 use effector::{CreatureContext, CreatureJointEffectors, JointContext};
 use joint::CreatureJoint;
@@ -22,10 +22,24 @@ use sensor::{update_sensor_status, LimbCollisionSensor};
 pub struct CreatureId(pub usize);
 
 
+pub struct CreatureBehaviorConfig {
+    pub max_force: f32,
+    pub max_linvel: f32,
+    pub max_angvel: f32,
+}
+
+impl Default for CreatureBehaviorConfig {
+    fn default() -> Self {
+        Self { max_force: 0.025, max_linvel: 1.0, max_angvel: 1.0 }
+    }
+}
+
+
 fn behavior_main(
     time: Res<Time>,
     mut joints: Query<(&CreatureJoint, &ImpulseJoint, &CreatureJointEffectors, Entity), With<CreatureJoint>>,
-    mut limbs: Query<(&LimbCollisionSensor, &Transform, &mut ExternalImpulse), With<CreatureLimb>>,
+    mut limbs: Query<(&LimbCollisionSensor, &Transform, &mut ExternalImpulse, &mut Velocity), With<CreatureLimb>>,
+    config: Res<CreatureBuilderConfig>,
 ) {
     let mut creature_contexts = HashMap::new();
     let mut joint_indices = HashMap::new();
@@ -58,6 +72,11 @@ fn behavior_main(
         }
     }
 
+    for (_, joint, _, entity) in joints.iter() {
+        limbs.get_mut(joint.parent).unwrap().2.torque_impulse = Vec3::ZERO;
+        limbs.get_mut(entity).unwrap().2.torque_impulse = Vec3::ZERO;
+    }
+
     for (i, (joint_data, joint, effectors, entity)) in joints.iter_mut().enumerate() {
         creature_contexts.get_mut(&joint_data.creature).unwrap().set_current_joint(joint_indices[&i]);
         let child_transform = *limbs.get(entity).unwrap().1;
@@ -66,6 +85,7 @@ fn behavior_main(
         for (i, effector) in effectors.effectors.iter().enumerate() {
             let Some(effector) = effector else { continue };
             let force = effector.expr.evaluate(context);
+            info!("{:?}", force);
 
             let (axis, rotational) = match i {
                 0 => (Vec3::X, false),
@@ -80,9 +100,14 @@ fn behavior_main(
             if rotational {
                 let rot_axis = child_transform.rotation * axis;
 
-                let torque = rot_axis * force.0;
-                limbs.get_mut(joint.parent).unwrap().2.torque_impulse = -torque;
-                limbs.get_mut(entity).unwrap().2.torque_impulse = torque;
+                let torque = rot_axis * force.0.clamp(-config.behavior.max_force, config.behavior.max_force);
+                // RESET TORQUE IMPULSE EVERY FRAME
+                limbs.get_mut(joint.parent).unwrap().2.torque_impulse += -torque;
+                limbs.get_mut(entity).unwrap().2.torque_impulse += torque;
+                limbs.get_mut(joint.parent).unwrap().3.linvel.clamp_length_max(config.behavior.max_linvel);
+                limbs.get_mut(entity).unwrap().3.linvel.clamp_length_max(config.behavior.max_linvel);
+                limbs.get_mut(joint.parent).unwrap().3.angvel.clamp_length_max(config.behavior.max_angvel);
+                limbs.get_mut(entity).unwrap().3.angvel.clamp_length_max(config.behavior.max_angvel);
             }
         }
     }

@@ -47,6 +47,8 @@ fn edge() -> Result<(), rand_distr::NormalError> {
             attach_position: Vec2::new(0.5, -0.3),
             orientation: Quat::from_rotation_x(0.5),
             scale: Vec3::ONE,
+            max_scale: Vec3::splat(1.0),
+            min_scale: Vec3::splat(0.1),
         },
         locked_axes: JointAxesMask::LIN_AXES,
         limit_axes: [[0.5, 0.5]; 6],

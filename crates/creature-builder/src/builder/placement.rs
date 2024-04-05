@@ -102,6 +102,8 @@ pub struct LimbRelativePlacement {
     /// The orientation of the limb relative to its attached face
     pub orientation: Quat,
     pub scale: Vec3,
+    pub max_scale: Vec3,
+    pub min_scale: Vec3,
 }
 
 pub struct LimbPosition {
@@ -123,7 +125,9 @@ impl LimbRelativePlacement {
         let global_translation = global_attach_point + to_body_mid * (parent.scale * self.scale).dot(Vec3::Y);
 
         LimbPosition {
-            transform: Transform::from_translation(global_translation).with_rotation(orientation).with_scale(parent.scale * self.scale),
+            transform: Transform::from_translation(global_translation)
+                .with_rotation(orientation)
+                .with_scale((parent.scale * self.scale).clamp(self.min_scale, self.max_scale)),
             parent_local_anchor: attach_point,
             local_anchor,
         }

@@ -1,9 +1,12 @@
 use bevy::prelude::*;
 
+use crate::CreatureBehaviorConfig;
+
 
 #[derive(Resource, Default)]
 pub struct CreatureBuilderConfig {
     pub collision_types: ActiveCollisionTypes,
+    pub behavior: CreatureBehaviorConfig,
 }
 
 

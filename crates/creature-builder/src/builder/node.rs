@@ -58,7 +58,13 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 let should_spawn = is_terminal == self.terminal_only;
 
                 // ! Issue here
-                let prev_transform = result.transforms.get(&from_node_id).unwrap().peek().unwrap();
+                let Some(prev_transform) = result.transforms.get(&from_node_id).map(|x| x.peek().unwrap()) else {
+                    error!("Error: couldn't find previous transform when evaluating creature morphology graph. Probably because terminal only was set to true");
+                    info!("id: {:?}", id);
+                    info!("From node id: {:?}", from_node_id);
+                    info!("Terminal only: {:?}", self.terminal_only);
+                    panic!()
+                };
                 let limb_position = edge.placement.create_transform(prev_transform);
                 let prev_limb_id = result.node_limb_ids.get(&from_node_id).unwrap().peek().unwrap();
                 let cur_limb_id = result.current_limb_id;
@@ -98,7 +104,6 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 }
 
                 if !self.terminal_only && should_spawn {
-                    // update transform history
                     match result.transforms.get_mut(&id) {
                         Some(history) => history.push(limb_position.transform),
                         None => {
@@ -222,7 +227,7 @@ impl BuildResult {
             .0
             .transform;
 
-        let min_y = lowest_limb.translation.y - Vec3::Y.dot(lowest_limb.rotation * lowest_limb.scale).abs();
+        let min_y = lowest_limb.translation.y - Vec3::Y.dot(lowest_limb.rotation * lowest_limb.scale).abs() - 1.0;
         self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= min_y);
     }
 
@@ -256,12 +261,13 @@ impl DirectedGraphParameters for BuildParameters {}
 #[derive(Debug, Clone)]
 pub struct CreatureMorphologyGraph {
     pub graph: DirectedGraph<LimbNode, LimbConnection, BuildResult, BuildParameters>,
+    pub root: Transform,
     pub creature: CreatureId,
 }
 
 impl CreatureMorphologyGraph {
     pub fn new(creature: CreatureId) -> Self {
-        Self { graph: DirectedGraph::new(), creature }
+        Self { graph: DirectedGraph::new(), root: Transform::IDENTITY, creature }
     }
 
     pub fn add_node(&mut self, node: LimbNode) -> NodeID {
@@ -324,8 +330,8 @@ impl CreatureMorphologyGraph {
         &self.graph.edges
     }
 
-    pub fn evaluate(&self, params: BuildParameters) -> BuildResult {
-        let mut res = self.graph.evaluate(params);
+    pub fn evaluate(&self) -> BuildResult {
+        let mut res = self.graph.evaluate(BuildParameters { root_transform: self.root });
         res.creature_id = self.creature;
         res
     }

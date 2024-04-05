@@ -1,5 +1,6 @@
 use std::{collections::HashSet, ops::Range};
 
+use bevy::transform::components::Transform;
 use bevy_rapier3d::dynamics::JointAxesMask;
 use creature_builder::{builder::node::CreatureMorphologyGraph, effector::CreatureJointEffector, CreatureId};
 use data_structure_utils::graphs::directed::{DirectedGraph, NodeID};
@@ -77,6 +78,10 @@ impl RandomMorphologyParams {
     pub fn build_morph(&self, rng: &mut ThreadRng, creature: CreatureId) -> CreatureMorphologyGraph {
         let mut graph = DirectedGraph::new();
 
+        // let root_placement = self.rand_edge.build_edge(rng).placement;
+        // let root_transform = Transform::from_scale(root_placement.scale);
+        let root_transform = Transform::IDENTITY;
+
         for _ in 0..rng.gen_range(self.nodes.clone()) {
             graph.add_node(self.rand_node.build_node(rng));
         }
@@ -102,13 +107,13 @@ impl RandomMorphologyParams {
         let n_nodes = graph.nodes.len();
         let node_ids: Vec<_> = graph.nodes.keys().copied().collect();
 
-        let mut morph = CreatureMorphologyGraph { graph, creature };
+        let mut morph = CreatureMorphologyGraph { graph, creature, root: root_transform };
 
         let n_joints = morph.edges_len();
         let rand_expr = self.rand_expr.clone().with_joint_count(n_joints);
         for edge in morph.edges_mut() {
             for (i, expr) in edge.data.effectors.effectors.iter_mut().enumerate() {
-                if edge.data.locked_axes.contains(JointAxesMask::from_bits(1 << i).unwrap()) {
+                if !edge.data.locked_axes.contains(JointAxesMask::from_bits(1 << i).unwrap()) {
                     *expr = Some(CreatureJointEffector { expr: rand_expr.build_expr(rng) });
                 }
             }

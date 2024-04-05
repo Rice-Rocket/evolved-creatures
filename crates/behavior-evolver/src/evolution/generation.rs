@@ -2,12 +2,7 @@ use std::time::{Duration, Instant};
 
 use bevy::prelude::*;
 use bevy_rapier3d::dynamics::{ImpulseJoint, Velocity};
-use creature_builder::{
-    builder::node::{BuildParameters, CreatureMorphologyGraph},
-    joint::CreatureJoint,
-    limb::CreatureLimb,
-    CreatureId,
-};
+use creature_builder::{builder::node::CreatureMorphologyGraph, joint::CreatureJoint, limb::CreatureLimb, CreatureId};
 
 use super::{
     fitness::{EvolutionFitnessEval, FitnessEvalInput},
@@ -82,7 +77,7 @@ pub(crate) fn test_generation<F: EvolutionFitnessEval + Send + Sync + Default + 
                     })
                 }
                 let morph = &generation.population[generation.current_test.unwrap()];
-                let mut result = morph.evaluate(BuildParameters { root_transform: Transform::from_xyz(0.0, 5.0, 0.0) });
+                let mut result = morph.evaluate();
                 // result.align_to_ground();
                 result.build(&mut commands, &mut meshes, &mut materials);
                 next_state.set(EvolutionState::TestingCreature);

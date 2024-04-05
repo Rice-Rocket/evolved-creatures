@@ -7,7 +7,7 @@ use creature_builder::{
         node::LimbConnection,
         placement::{LimbAttachFace, LimbRelativePlacement},
     },
-    effector::{CreatureJointEffector, CreatureJointEffectors},
+    effector::CreatureJointEffectors,
 };
 use rand::{rngs::ThreadRng, Rng};
 use rand_distr::Normal;
@@ -19,6 +19,7 @@ use super::{expr::RandomExprParams, MutateFieldParams};
 pub struct RandomEdgeParams {
     pub placement_pos: Range<f32>,
     pub placement_scale: Range<f32>,
+    pub placement_scale_range: Range<f32>,
     pub lock_front_rot: bool,
     pub limit_axes: Range<f32>,
     pub rand_expr: RandomExprParams,
@@ -35,7 +36,9 @@ impl RandomEdgeParams {
 
         let mut limit_axes = [[0f32; 2]; 6];
         for axis in limit_axes.iter_mut() {
-            *axis = [rng.gen_range(self.limit_axes.clone()), rng.gen_range(self.limit_axes.clone())];
+            // *axis = [-rng.gen_range(self.limit_axes.clone()),
+            // rng.gen_range(self.limit_axes.clone())];
+            *axis = [-std::f32::consts::PI, std::f32::consts::PI];
         }
 
         LimbConnection {
@@ -48,17 +51,12 @@ impl RandomEdgeParams {
                     rng.gen_range(self.placement_scale.clone()),
                     rng.gen_range(self.placement_scale.clone()),
                 ),
+                min_scale: Vec3::splat(self.placement_scale_range.start),
+                max_scale: Vec3::splat(self.placement_scale_range.end),
             },
             locked_axes: JointAxesMask::LIN_AXES,
             limit_axes,
-            effectors: CreatureJointEffectors::new([
-                None,
-                None,
-                None,
-                Some(CreatureJointEffector { expr: self.rand_expr.build_expr(rng) }),
-                Some(CreatureJointEffector { expr: self.rand_expr.build_expr(rng) }),
-                Some(CreatureJointEffector { expr: self.rand_expr.build_expr(rng) }),
-            ]),
+            effectors: CreatureJointEffectors::new([None, None, None, None, None, None]),
         }
     }
 }
@@ -67,7 +65,8 @@ impl Default for RandomEdgeParams {
     fn default() -> Self {
         Self {
             placement_pos: -1f32..1f32,
-            placement_scale: 0.5..2.0,
+            placement_scale: 0.1..1.0,
+            placement_scale_range: 0.25..2.0,
             lock_front_rot: true,
             limit_axes: 0f32..std::f32::consts::PI,
             rand_expr: RandomExprParams::default(),

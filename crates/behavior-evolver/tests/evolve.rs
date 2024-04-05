@@ -1,6 +1,6 @@
 use behavior_evolver::{evolution::CreatureEnvironmentPlugin, mutate::RandomMorphologyParams};
 use bevy::prelude::*;
-use creature_builder::{builder::node::BuildParameters, CreatureId};
+use creature_builder::{builder::node::CreatureMorphologyGraph, limb::CreatureLimb, CreatureId};
 
 fn main() {
     App::new()
@@ -15,18 +15,39 @@ fn main() {
         .add_plugins(CreatureEnvironmentPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, update)
+        .insert_resource(CurrentCreatureInfo(CreatureMorphologyGraph::new(CreatureId(0))))
         .run()
 }
 
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut materials: ResMut<Assets<StandardMaterial>>) {
-    let mut rng = rand::thread_rng();
-    let morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
-    let mut res = morph.evaluate(BuildParameters { root_transform: Transform::from_xyz(0.0, 5.0, 0.0) });
-    res.build(&mut commands, &mut meshes, &mut materials);
+fn setup() {
+    // state.set(EvolutionState::PopulatingGeneration);
 }
 
-// fn setup() {
-//     state.set(EvolutionState::PopulatingGeneration);
-// }
+#[derive(Resource)]
+struct CurrentCreatureInfo(CreatureMorphologyGraph);
 
-fn update() {}
+fn update(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    keys: Res<Input<KeyCode>>,
+    limbs: Query<Entity, With<CreatureLimb>>,
+    current: Res<CurrentCreatureInfo>,
+) {
+    if keys.just_pressed(KeyCode::Space) {
+        limbs.for_each(|entity| commands.entity(entity).despawn());
+        let mut rng = rand::thread_rng();
+        let morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
+        let mut res = morph.evaluate();
+        res.align_to_ground();
+        res.build(&mut commands, &mut meshes, &mut materials);
+        commands.insert_resource(CurrentCreatureInfo(morph));
+    }
+
+    if keys.just_pressed(KeyCode::P) {
+        for edge in current.0.edges() {
+            edge.data.effectors.effectors.iter().filter(|x| x.is_some()).for_each(|x| println!("\n{:?}", x.as_ref().unwrap().expr.root));
+            println!("\n-----------");
+        }
+    }
+}

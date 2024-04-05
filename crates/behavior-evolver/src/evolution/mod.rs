@@ -15,7 +15,7 @@ use bevy_rapier3d::{
 };
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use creature_builder::{
-    config::{ActiveCollisionTypes, CreatureBuilderConfig},
+    config::CreatureBuilderConfig,
     sensor::{ContactFilter, ContactFilterTag},
     CreatureBuilderPlugin,
 };
@@ -50,7 +50,7 @@ pub struct CreatureEnvironmentPlugin;
 impl Plugin for CreatureEnvironmentPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(CreatureBuilderPlugin)
-            .insert_resource(CreatureBuilderConfig { collision_types: ActiveCollisionTypes::LIMB_VS_GROUND })
+            .insert_resource(CreatureBuilderConfig::default())
             .add_systems(Startup, (setup, setup_ground))
             .add_plugins(RapierPhysicsPlugin::<ContactFilter>::default())
             .add_plugins(PanOrbitCameraPlugin)
@@ -58,7 +58,7 @@ impl Plugin for CreatureEnvironmentPlugin {
             .add_plugins(ScreenFrameDiagnosticsPlugin)
             .add_plugins(RapierPhysicsEditorPlugin)
             .insert_resource(RapierConfiguration {
-                timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
+                timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 4 },
                 ..default()
             });
     }

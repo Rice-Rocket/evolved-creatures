@@ -93,7 +93,7 @@ pub(crate) fn update_sensor_status(
     for collision_event in collision_events.read() {
         if let CollisionEvent::Started(entity_1, entity_2, _flags) = collision_event {
             let Some(contact_pair) = context.contact_pair(*entity_1, *entity_2) else { continue };
-            let (_contact_manifold, contact_view) = contact_pair.find_deepest_contact().unwrap();
+            let Some((_contact_manifold, contact_view)) = contact_pair.find_deepest_contact() else { continue };
 
             let face_1 = LimbAttachFace::from_point(contact_view.local_p1());
             let face_2 = LimbAttachFace::from_point(contact_view.local_p2());
