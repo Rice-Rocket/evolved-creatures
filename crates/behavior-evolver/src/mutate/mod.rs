@@ -78,9 +78,8 @@ impl RandomMorphologyParams {
     pub fn build_morph(&self, rng: &mut ThreadRng, creature: CreatureId) -> CreatureMorphologyGraph {
         let mut graph = DirectedGraph::new();
 
-        // let root_placement = self.rand_edge.build_edge(rng).placement;
-        // let root_transform = Transform::from_scale(root_placement.scale);
-        let root_transform = Transform::IDENTITY;
+        let root_placement = self.rand_edge.build_edge(rng).placement;
+        let root_transform = Transform::from_scale(root_placement.scale);
 
         for _ in 0..rng.gen_range(self.nodes.clone()) {
             graph.add_node(self.rand_node.build_node(rng));

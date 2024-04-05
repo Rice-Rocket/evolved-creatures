@@ -12,6 +12,7 @@ use crate::{
 #[derive(Component, Clone, Debug)]
 pub struct CreatureLimb {
     pub creature: CreatureId,
+    pub limb_count: usize,
 }
 
 
@@ -58,7 +59,7 @@ pub struct CreatureLimbBundle {
 impl Default for CreatureLimbBundle {
     fn default() -> Self {
         CreatureLimbBundle {
-            limb: CreatureLimb { creature: CreatureId(0) },
+            limb: CreatureLimb { creature: CreatureId(0), limb_count: 0 },
             name: Name::new("()"),
             sensor: LimbCollisionSensor { faces: [LimbCollisionType::None; 6], entities: HashMap::new() },
             filter_tag: ContactFilterTag::LimbGroup,
@@ -130,6 +131,11 @@ impl CreatureLimbBundle {
 
     pub fn with_creature(mut self, id: CreatureId) -> Self {
         self.limb.creature = id;
+        self
+    }
+
+    pub fn with_limb_count(mut self, count: usize) -> Self {
+        self.limb.limb_count = count;
         self
     }
 

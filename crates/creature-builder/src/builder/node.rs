@@ -233,9 +233,16 @@ impl BuildResult {
 
     pub fn build(&mut self, commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) {
         let mut entity_ids = HashMap::new();
+        let limb_count = self.limb_build_queue.len();
         while let Some(limb) = self.limb_build_queue.pop_front() {
             let id = commands
-                .spawn(limb.0.with_color(Color::rgba(1.0, 1.0, 1.0, 0.8)).with_creature(self.creature_id).finish(meshes, materials))
+                .spawn(
+                    limb.0
+                        .with_color(Color::rgba(1.0, 1.0, 1.0, 0.8))
+                        .with_creature(self.creature_id)
+                        .with_limb_count(limb_count)
+                        .finish(meshes, materials),
+                )
                 .id();
             entity_ids.insert(limb.1, id);
         }

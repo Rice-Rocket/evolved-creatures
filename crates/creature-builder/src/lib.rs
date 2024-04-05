@@ -24,13 +24,13 @@ pub struct CreatureId(pub usize);
 
 pub struct CreatureBehaviorConfig {
     pub max_force: f32,
-    pub max_linvel: f32,
+    pub max_rel_linvel: f32,
     pub max_angvel: f32,
 }
 
 impl Default for CreatureBehaviorConfig {
     fn default() -> Self {
-        Self { max_force: 0.025, max_linvel: 1.0, max_angvel: 1.0 }
+        Self { max_force: 0.025, max_rel_linvel: 10.0, max_angvel: 10.0 }
     }
 }
 
@@ -85,10 +85,6 @@ fn behavior_main(
         for (i, effector) in effectors.effectors.iter().enumerate() {
             let Some(effector) = effector else { continue };
             let force = effector.expr.evaluate(context);
-            if !force.0.is_finite() {
-                warn!("Non finite force! ({:?})", force.0);
-                panic!()
-            }
 
             let (axis, rotational) = match i {
                 0 => (Vec3::X, false),
@@ -104,15 +100,32 @@ fn behavior_main(
                 let rot_axis = child_transform.rotation * axis;
 
                 let torque = rot_axis * force.0.clamp(-config.behavior.max_force, config.behavior.max_force);
-                // RESET TORQUE IMPULSE EVERY FRAME
                 limbs.get_mut(joint.parent).unwrap().2.torque_impulse += -torque;
                 limbs.get_mut(entity).unwrap().2.torque_impulse += torque;
-                limbs.get_mut(joint.parent).unwrap().3.linvel.clamp_length_max(config.behavior.max_linvel);
-                limbs.get_mut(entity).unwrap().3.linvel.clamp_length_max(config.behavior.max_linvel);
-                limbs.get_mut(joint.parent).unwrap().3.angvel.clamp_length_max(config.behavior.max_angvel);
-                limbs.get_mut(entity).unwrap().3.angvel.clamp_length_max(config.behavior.max_angvel);
             }
         }
+    }
+}
+
+
+fn clamp_velocity(mut limbs: Query<(&mut Velocity, &CreatureLimb)>, config: Res<CreatureBuilderConfig>) {
+    let mut creature_vels: HashMap<CreatureId, Vec3> = HashMap::new();
+    for (vel, limb) in limbs.iter() {
+        match creature_vels.entry(limb.creature) {
+            Entry::Vacant(entry) => {
+                entry.insert(vel.linvel / limb.limb_count as f32);
+            },
+            Entry::Occupied(mut entry) => {
+                let linvel = entry.get();
+                *entry.get_mut() = *linvel + vel.linvel / limb.limb_count as f32
+            },
+        };
+    }
+
+    for (mut vel, limb) in limbs.iter_mut() {
+        let creature_vel = creature_vels.get(&limb.creature).unwrap();
+        vel.linvel = vel.linvel.clamp_length_max(config.behavior.max_rel_linvel + creature_vel.length());
+        vel.angvel = vel.angvel.clamp_length_max(config.behavior.max_angvel);
     }
 }
 
@@ -122,6 +135,6 @@ pub struct CreatureBuilderPlugin;
 
 impl Plugin for CreatureBuilderPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CreatureBuilderConfig>().add_systems(Update, (update_sensor_status, behavior_main));
+        app.init_resource::<CreatureBuilderConfig>().add_systems(Update, (update_sensor_status, behavior_main, clamp_velocity));
     }
 }
