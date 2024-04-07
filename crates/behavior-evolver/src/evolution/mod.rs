@@ -58,7 +58,7 @@ impl Plugin for CreatureEnvironmentPlugin {
             .add_plugins(ScreenFrameDiagnosticsPlugin)
             .add_plugins(RapierPhysicsEditorPlugin)
             .insert_resource(RapierConfiguration {
-                timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 0.5, substeps: 4 },
+                timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 0.75, substeps: 4 },
                 ..default()
             });
     }

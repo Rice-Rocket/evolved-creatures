@@ -1,4 +1,7 @@
-use behavior_evolver::{evolution::CreatureEnvironmentPlugin, mutate::RandomMorphologyParams};
+use behavior_evolver::{
+    evolution::CreatureEnvironmentPlugin,
+    mutate::{MutateMorphology, MutateMorphologyParams, RandomMorphologyParams},
+};
 use bevy::prelude::*;
 use creature_builder::{builder::node::CreatureMorphologyGraph, limb::CreatureLimb, CreatureId};
 
@@ -37,7 +40,17 @@ fn update(
     if keys.just_pressed(KeyCode::Space) {
         limbs.for_each(|entity| commands.entity(entity).despawn());
         let mut rng = rand::thread_rng();
-        let morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
+        let mut morph = RandomMorphologyParams::default().build_morph(&mut rng, CreatureId(0));
+        let mut params = MutateMorphologyParams::default();
+        let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
         let mut res = morph.evaluate();
         res.align_to_ground();
         res.build(&mut commands, &mut meshes, &mut materials);

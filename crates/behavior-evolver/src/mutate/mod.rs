@@ -1,6 +1,10 @@
 use std::{collections::HashSet, ops::Range};
 
-use bevy::transform::components::Transform;
+use bevy::{
+    log::{error, info},
+    math::Vec3,
+    transform::components::Transform,
+};
 use bevy_rapier3d::dynamics::JointAxesMask;
 use creature_builder::{builder::node::CreatureMorphologyGraph, effector::CreatureJointEffector, CreatureId};
 use data_structure_utils::graphs::directed::{DirectedGraph, NodeID};
@@ -70,6 +74,7 @@ pub struct RandomMorphologyParams {
     pub rand_node: RandomNodeParams,
     pub rand_edge: RandomEdgeParams,
     pub rand_expr: RandomExprParams,
+    pub rand_root: Range<f32>,
     pub nodes: Range<usize>,
     pub edges: Range<usize>,
 }
@@ -78,8 +83,11 @@ impl RandomMorphologyParams {
     pub fn build_morph(&self, rng: &mut ThreadRng, creature: CreatureId) -> CreatureMorphologyGraph {
         let mut graph = DirectedGraph::new();
 
-        let root_placement = self.rand_edge.build_edge(rng).placement;
-        let root_transform = Transform::from_scale(root_placement.scale);
+        let root_transform = Transform::from_scale(Vec3::new(
+            rng.gen_range(self.rand_root.clone()),
+            rng.gen_range(self.rand_root.clone()),
+            rng.gen_range(self.rand_root.clone()),
+        ));
 
         for _ in 0..rng.gen_range(self.nodes.clone()) {
             graph.add_node(self.rand_node.build_node(rng));
@@ -108,6 +116,13 @@ impl RandomMorphologyParams {
 
         let mut morph = CreatureMorphologyGraph { graph, creature, root: root_transform };
 
+        let graph_root = node_ids[rng.gen_range(0..n_nodes)];
+        morph.set_root(graph_root);
+
+        if morph.graph.get_node(graph_root).unwrap().outs.is_empty() {
+            morph.graph.add_edge(self.rand_edge.build_edge(rng), graph_root, node_ids[rng.gen_range(0..n_nodes)]);
+        }
+
         let n_joints = morph.edges_len();
         let rand_expr = self.rand_expr.clone().with_joint_count(n_joints);
         for edge in morph.edges_mut() {
@@ -118,7 +133,6 @@ impl RandomMorphologyParams {
             }
         }
 
-        morph.set_root(node_ids[rng.gen_range(0..n_nodes)]);
         morph
     }
 }
@@ -129,6 +143,7 @@ impl Default for RandomMorphologyParams {
             rand_node: RandomNodeParams::default(),
             rand_edge: RandomEdgeParams::default(),
             rand_expr: RandomExprParams::default(),
+            rand_root: 0.5..1.0,
             nodes: 3..6,
             edges: 2..4,
         }
@@ -173,7 +188,7 @@ impl Default for MutateMorphologyParams {
                 friction: MutateFieldParams::new(0.05, 0.0, 0.1).unwrap().in_range(0.1..0.9),
                 restitution: MutateFieldParams::new(0.05, 0.0, 0.1).unwrap().in_range(0.1..0.9),
                 recursive: MutateFieldParams::new(0.05, 0.0, 0.75).unwrap(),
-                terminal_freq: 0.05,
+                terminal_freq: 0.0,
             },
             edge: MutateEdgeParams {
                 placement_face_freq: 0.05,
@@ -229,27 +244,38 @@ impl<'a> MutateMorphology<'a> {
         // Step 2: add a new random node
         self.morph.add_node(self.params.rand_node.build_node(self.rng));
 
+        let graph_root = self.morph.graph.get_root().unwrap();
+        let mut graph_root_outs = self.morph.graph.get_node(graph_root).unwrap().outs.len();
+
         // Step 3: each edge's internal parameters can mutate
         let n_nodes = self.morph.nodes_len();
         let node_ids = self.morph.node_ids();
-        for edge in self.morph.edges_mut() {
+        for edge_id in self.morph.edge_ids() {
+            let edge = self.morph.graph.get_edge_mut(edge_id).unwrap();
             let mut mutate = MutateEdge::new(&mut edge.data, self.rng, &self.params.edge);
+            let (mut source, mut prev_so): (Option<NodeID>, NodeID) = (None, NodeID(0));
             mutate.mutate();
-            if self.rng.gen_bool(self.params.edge_change_freq as f64) {
+            if self.rng.gen_bool(self.params.edge_change_freq as f64) && (edge.from != graph_root || graph_root_outs > 1) {
+                prev_so = edge.from;
                 edge.from = node_ids[self.rng.gen_range(0..n_nodes)];
+                source = Some(edge.from);
             }
             if self.rng.gen_bool(self.params.edge_change_freq as f64) {
                 edge.to = node_ids[self.rng.gen_range(0..n_nodes)];
             }
+            if let Some(so) = source {
+                self.morph.graph.get_node_mut(prev_so).unwrap().outs.retain(|id| *id != edge_id);
+                self.morph.graph.get_node_mut(so).unwrap().outs.push(edge_id);
+            }
         }
+        graph_root_outs = self.morph.graph.get_node(graph_root).unwrap().outs.len();
 
         // Step 4: add and remove random edges
-        let graph_root = self.morph.graph.get_root().unwrap();
         for edge in self.morph.edge_ids() {
             if self.morph.edges_len() > 1 && self.rng.gen_bool(self.params.edge_del_freq as f64 / self.morph.edges_len() as f64) {
                 let source = self.morph.graph.get_edge(edge).unwrap().from;
                 // ensure root node persists
-                if source != graph_root || self.morph.graph.get_node(graph_root).unwrap().outs.len() <= 1 {
+                if source != graph_root || graph_root_outs > 1 {
                     self.morph.remove_edge(edge);
                 }
             }
