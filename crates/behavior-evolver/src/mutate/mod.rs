@@ -1,10 +1,6 @@
 use std::{collections::HashSet, ops::Range};
 
-use bevy::{
-    log::{error, info},
-    math::Vec3,
-    transform::components::Transform,
-};
+use bevy::{math::Vec3, transform::components::Transform};
 use bevy_rapier3d::dynamics::JointAxesMask;
 use creature_builder::{builder::node::CreatureMorphologyGraph, effector::CreatureJointEffector, CreatureId};
 use data_structure_utils::graphs::directed::{DirectedGraph, NodeID};
@@ -83,11 +79,10 @@ impl RandomMorphologyParams {
     pub fn build_morph(&self, rng: &mut ThreadRng, creature: CreatureId) -> CreatureMorphologyGraph {
         let mut graph = DirectedGraph::new();
 
-        let root_transform = Transform::from_scale(Vec3::new(
-            rng.gen_range(self.rand_root.clone()),
-            rng.gen_range(self.rand_root.clone()),
-            rng.gen_range(self.rand_root.clone()),
-        ));
+        // Ensure root cube has constant volume
+        let root_scale_e1 = rng.gen_range(self.rand_root.clone());
+        let root_scale_e2 = rng.gen_range(self.rand_root.clone());
+        let root_transform = Transform::from_scale(Vec3::new(root_scale_e1, 1.0 / (root_scale_e1 * root_scale_e2), root_scale_e2));
 
         for _ in 0..rng.gen_range(self.nodes.clone()) {
             graph.add_node(self.rand_node.build_node(rng));
@@ -143,7 +138,7 @@ impl Default for RandomMorphologyParams {
             rand_node: RandomNodeParams::default(),
             rand_edge: RandomEdgeParams::default(),
             rand_expr: RandomExprParams::default(),
-            rand_root: 0.5..1.0,
+            rand_root: 0.5..1.5,
             nodes: 3..6,
             edges: 2..4,
         }
@@ -165,6 +160,7 @@ pub struct MutateMorphologyParams {
     /// The frequency at which edges are added
     pub edge_add_freq: f32,
     pub expr_mut_freq: f32,
+    pub root_size: MutateFieldParams,
     /// The inverse scale at which the sizes of creatures reduce the frequency
     /// of mutations
     pub size_inv_scale: f32,
@@ -204,6 +200,7 @@ impl Default for MutateMorphologyParams {
             edge_del_freq: 0.1,
             edge_add_freq: 0.1,
             expr_mut_freq: 0.15,
+            root_size: MutateFieldParams::new(0.05, 0.0, 0.05).unwrap().in_range(0.25..2.0),
             size_inv_scale: 1.0,
         }
     }
@@ -317,6 +314,26 @@ impl<'a> MutateMorphology<'a> {
                     mutate.mutate();
                 }
             }
+        }
+
+        // Step 7: mutate root cube size
+        if self.params.root_size.change(self.rng) {
+            let axis = match self.rng.gen_range(0..3) {
+                0 => {
+                    self.morph.root.scale.x = self.params.root_size.mutate(self.rng, self.morph.root.scale.x);
+                    1
+                },
+                1 => {
+                    self.morph.root.scale.y = self.params.root_size.mutate(self.rng, self.morph.root.scale.y);
+                    2
+                },
+                _ => {
+                    self.morph.root.scale.z = self.params.root_size.mutate(self.rng, self.morph.root.scale.z);
+                    0
+                },
+            };
+            // Ensure root cube has constant volume
+            self.morph.root.scale[axis] = 1.0 / (self.morph.root.scale[(axis + 1) % 3] * self.morph.root.scale[(axis + 2) % 3])
         }
     }
 }

@@ -51,6 +51,12 @@ fn update(
         mutate.mutate();
         mutate.mutate();
         mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
+        mutate.mutate();
         let mut res = morph.evaluate();
         res.align_to_ground();
         res.build(&mut commands, &mut meshes, &mut materials);
