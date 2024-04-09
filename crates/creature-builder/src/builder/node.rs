@@ -213,22 +213,33 @@ impl DirectedGraphResult for BuildResult {
 
 impl BuildResult {
     pub fn align_to_ground(&mut self) {
-        let lowest_limb = self
-            .limb_build_queue
-            .iter()
-            .min_by(|a, b| {
-                a.0.transform
-                    .translation
-                    .y
-                    .partial_cmp(&b.0.transform.translation.y)
-                    .expect("Could not compare transform y values, NAN likely in limb_build_queue")
-            })
-            .expect("limb_build_queue empty")
-            .0
-            .transform;
+        let mut mini = f32::MAX;
+        self.limb_build_queue.iter().for_each(|limb| {
+            let transform = limb.0.transform;
+            let c = transform.translation;
+            let x = transform.local_x() * transform.scale.x;
+            let y = transform.local_y() * transform.scale.y;
+            let z = transform.local_z() * transform.scale.z;
+            let min_y = (c + x + y + z)
+                .y
+                .min((c + x + y - z).y)
+                .min((c + x - y + z).y)
+                .min((c - x + y + z).y)
+                .min((c + x - y - z).y)
+                .min((c - x + y - z).y)
+                .min((c - x - y + z).y)
+                .min((c - x - y - z).y);
+            mini = mini.min(min_y);
+        });
 
-        let min_y = lowest_limb.translation.y - Vec3::Y.dot(lowest_limb.rotation * lowest_limb.scale).abs() - 1.0;
-        self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= min_y);
+        if mini == f32::MAX {
+            panic!("Limb build queue empty")
+        }
+        if !mini.is_finite() {
+            panic!("Limb build queue contains NaN or infinite value")
+        }
+
+        self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= mini - 0.1);
     }
 
     pub fn build(&mut self, commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) {

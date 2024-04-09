@@ -7,7 +7,24 @@ pub struct JumpFitnessEval {
 
 impl EvolutionFitnessEval for JumpFitnessEval {
     fn eval_continuous(&mut self, input: FitnessEvalInput) {
-        self.max_height = self.max_height.max(input.position.y);
+        let mut mini = f32::MAX;
+        input.limbs.iter().for_each(|(transform, _)| {
+            let c = transform.translation;
+            let x = transform.local_x() * transform.scale.x;
+            let y = transform.local_y() * transform.scale.y;
+            let z = transform.local_z() * transform.scale.z;
+            let min_y = (c + x + y + z)
+                .y
+                .min((c + x + y - z).y)
+                .min((c + x - y + z).y)
+                .min((c - x + y + z).y)
+                .min((c + x - y - z).y)
+                .min((c - x + y - z).y)
+                .min((c - x - y + z).y)
+                .min((c - x - y - z).y);
+            mini = mini.min(min_y);
+        });
+        self.max_height = self.max_height.max(mini);
     }
 
     fn final_eval(&self) -> f32 {

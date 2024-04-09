@@ -1,5 +1,5 @@
 use behavior_evolver::{
-    evolution::CreatureEnvironmentPlugin,
+    evolution::{fitness::jump::JumpFitnessEval, state::EvolutionState, CreatureEvolutionPlugin},
     mutate::{MutateMorphology, MutateMorphologyParams, RandomMorphologyParams},
 };
 use bevy::prelude::*;
@@ -14,21 +14,22 @@ fn main() {
             }),
             ..default()
         }))
-        // .add_plugins(CreatureEvolutionPlugin::<JumpFitnessEval>::default())
-        .add_plugins(CreatureEnvironmentPlugin)
+        .add_plugins(CreatureEvolutionPlugin::<JumpFitnessEval>::default())
+        // .add_plugins(CreatureEnvironmentPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, update)
+        // .add_systems(Update, update)
         .insert_resource(CurrentCreatureInfo(CreatureMorphologyGraph::new(CreatureId(0))))
         .run()
 }
 
-fn setup() {
-    // state.set(EvolutionState::PopulatingGeneration);
+fn setup(mut state: ResMut<NextState<EvolutionState>>) {
+    state.set(EvolutionState::PopulatingGeneration);
 }
 
 #[derive(Resource)]
 struct CurrentCreatureInfo(CreatureMorphologyGraph);
 
+#[allow(dead_code)]
 fn update(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

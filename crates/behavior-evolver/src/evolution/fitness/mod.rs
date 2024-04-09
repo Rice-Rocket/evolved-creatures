@@ -1,11 +1,11 @@
 pub mod jump;
 
-use bevy::math::Vec3;
+use bevy::transform::components::Transform;
+use bevy_rapier3d::dynamics::Velocity;
 
 
 pub struct FitnessEvalInput {
-    pub position: Vec3,
-    pub velocity: Vec3,
+    pub limbs: Vec<(Transform, Velocity)>,
 }
 
 
