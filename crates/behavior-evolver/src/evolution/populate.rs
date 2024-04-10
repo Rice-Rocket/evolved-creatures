@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use creature_builder::CreatureId;
+use serde::{Deserialize, Serialize};
 
 use super::{fitness::EvolutionFitnessEval, generation::EvolutionGeneration, state::EvolutionState};
 use crate::mutate::{MutateMorphology, MutateMorphologyParams, RandomMorphologyParams};
@@ -17,7 +18,20 @@ pub struct GenerationPopulator {
     pub pop_size: usize,
     pub mutate_params: MutateMorphologyParams,
     pub rand_params: RandomMorphologyParams,
-    current_id: usize,
+    pub current_id: usize,
+    pub best_fitness: f32,
+}
+
+impl GenerationPopulator {
+    pub fn new(
+        elitism: f32,
+        rand_percent: f32,
+        pop_size: usize,
+        mutate_params: MutateMorphologyParams,
+        rand_params: RandomMorphologyParams,
+    ) -> Self {
+        Self { elitism, rand_percent, pop_size, mutate_params, rand_params, current_id: 0, best_fitness: f32::MIN }
+    }
 }
 
 impl Default for GenerationPopulator {
@@ -29,6 +43,24 @@ impl Default for GenerationPopulator {
             mutate_params: MutateMorphologyParams::default(),
             rand_params: RandomMorphologyParams::default(),
             current_id: 0,
+            best_fitness: f32::MIN,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum CreaturePopulateFlag {
+    Retained,
+    Mutated,
+    Spawned,
+}
+
+impl CreaturePopulateFlag {
+    pub fn into_color(&self) -> Color {
+        match self {
+            Self::Retained => Color::rgba_u8(166, 227, 161, 220),
+            Self::Mutated => Color::rgba_u8(137, 220, 235, 220),
+            Self::Spawned => Color::rgba_u8(249, 226, 175, 220),
         }
     }
 }
@@ -40,17 +72,18 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
     mut next_state: ResMut<NextState<EvolutionState>>,
 ) {
     if generation.population.is_empty() {
-        info!("initializing generation...");
         let mut rng = rand::thread_rng();
         for i in 0..populator.pop_size {
             generation.population.push(populator.rand_params.build_morph(&mut rng, CreatureId(i)));
+            generation.populate_flags.push(CreaturePopulateFlag::Spawned);
             populator.current_id += 1;
         }
         next_state.set(EvolutionState::EvaluatingCreature);
         return;
     }
 
-    info!("building next generation");
+    generation.current_generation += 1;
+
     let mut elite: Vec<_> = generation.population.iter().enumerate().collect();
     elite.sort_unstable_by(|(i, _), (j, _)| {
         (-generation.fitnesses[*i])
@@ -63,7 +96,14 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
 
     elite.truncate(retained);
     generation.population = elite.iter().map(|(_, x)| (*x).clone()).collect();
+
+    populator.best_fitness = *generation.fitnesses.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
     generation.fitnesses.clear();
+
+    generation.populate_flags.clear();
+    for _ in 0..generation.population.len() {
+        generation.populate_flags.push(CreaturePopulateFlag::Retained);
+    }
 
     let mut rng = rand::thread_rng();
     let mut params = populator.mutate_params.clone();
@@ -74,14 +114,14 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
         let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
         mutate.mutate();
         generation.population.push(morph);
+        generation.populate_flags.push(CreaturePopulateFlag::Mutated);
     }
 
-    for _ in 0..retained {
+    for _ in 0..rand_amt {
         generation.population.push(populator.rand_params.build_morph(&mut rng, CreatureId(populator.current_id)));
+        generation.populate_flags.push(CreaturePopulateFlag::Spawned);
         populator.current_id += 1;
     }
-
-    println!("{}", generation.population.len());
 
     next_state.set(EvolutionState::EvaluatingCreature);
 }

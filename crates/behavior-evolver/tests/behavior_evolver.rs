@@ -150,7 +150,7 @@ fn behavior_evolver_scene(mut commands: Commands, mut meshes: ResMut<Assets<Mesh
 
     let mut result = builder_graph.evaluate();
 
-    result.build(&mut commands, &mut meshes, &mut materials);
+    result.build(&mut commands, &mut meshes, &mut materials, Color::rgba(1.0, 1.0, 1.0, 0.8));
 }
 
 

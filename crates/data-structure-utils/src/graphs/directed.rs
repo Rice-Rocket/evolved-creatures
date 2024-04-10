@@ -1,8 +1,10 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+use serde::{Deserialize, Serialize};
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct NodeID(pub usize);
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct EdgeID(pub usize);
 
 
@@ -20,7 +22,7 @@ pub trait NodeData<E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParamete
     fn on_leave(&self, result: &mut R, params: &P, id: NodeID);
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectedGraphNode<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParameters> {
     pub outs: Vec<EdgeID>,
     pub data: N,
@@ -69,7 +71,7 @@ impl<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraph
 
 pub trait EdgeData {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectedGraphEdge<E: EdgeData> {
     pub from: NodeID,
     pub to: NodeID,
@@ -85,7 +87,7 @@ pub trait DirectedGraphResult {
 pub trait DirectedGraphParameters {}
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectedGraph<N: NodeData<E, R, P>, E: EdgeData, R: DirectedGraphResult, P: DirectedGraphParameters> {
     root_node: Option<NodeID>,
     pub nodes: HashMap<NodeID, DirectedGraphNode<N, E, R, P>>,

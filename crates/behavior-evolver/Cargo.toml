@@ -14,8 +14,11 @@ bevy_screen_diagnostics.workspace = true
 bevy_editor_pls.workspace = true
 creature-builder.workspace = true
 data-structure-utils.workspace = true
-rand = "*"
-rand_distr = "*"
+rand = "0.8.5"
+rand_distr = "0.4.3"
+homedir = "0.2.1"
+ron = "0.8"
+serde = { version = "1.0.197", features = ["derive"] }
 
 [[test]]
 name = "behavior_evolver"

@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 use random_derive::RandField;
+use serde::{Deserialize, Serialize};
 
 
-#[derive(Debug, Clone, Copy, PartialEq, RandField)]
+#[derive(Debug, Clone, Copy, PartialEq, RandField, Serialize, Deserialize)]
 pub enum LimbAttachFace {
     PosX,
     NegX,
@@ -93,7 +94,7 @@ impl LimbAttachFace {
 
 /// The relative translation, orientation, and scale of a limb in comparison to
 /// its parent
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LimbRelativePlacement {
     pub attach_face: LimbAttachFace,
     /// The percentage along the attach face (in range `[-1, 1]`) to place the

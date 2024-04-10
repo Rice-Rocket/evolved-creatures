@@ -9,6 +9,7 @@ use data_structure_utils::{
     },
     stack::Stack,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     builder::placement::LimbRelativePlacement, effector::CreatureJointEffectors, joint::CreatureJointBuilder, limb::CreatureLimbBundle,
@@ -16,7 +17,7 @@ use crate::{
 };
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LimbConnection {
     pub placement: LimbRelativePlacement,
     pub locked_axes: JointAxesMask,
@@ -28,7 +29,7 @@ pub struct LimbConnection {
 impl EdgeData for LimbConnection {}
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LimbNode {
     pub name: Option<String>,
     pub density: f32,
@@ -186,9 +187,11 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
 }
 
 
-#[derive(Resource, Debug, Clone)]
+#[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct BuildResult {
+    #[serde(skip)]
     pub limb_build_queue: VecDeque<(CreatureLimbBundle, usize)>,
+    #[serde(skip)]
     pub joint_build_queue: VecDeque<(CreatureJointBuilder, usize, usize)>,
     recursive_limits: HashMap<NodeID, usize>,
     transforms: HashMap<NodeID, Stack<Transform>>,
@@ -242,18 +245,18 @@ impl BuildResult {
         self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= mini - 0.1);
     }
 
-    pub fn build(&mut self, commands: &mut Commands, meshes: &mut ResMut<Assets<Mesh>>, materials: &mut ResMut<Assets<StandardMaterial>>) {
+    pub fn build(
+        &mut self,
+        commands: &mut Commands,
+        meshes: &mut ResMut<Assets<Mesh>>,
+        materials: &mut ResMut<Assets<StandardMaterial>>,
+        color: Color,
+    ) {
         let mut entity_ids = HashMap::new();
         let limb_count = self.limb_build_queue.len();
         while let Some(limb) = self.limb_build_queue.pop_front() {
             let id = commands
-                .spawn(
-                    limb.0
-                        .with_color(Color::rgba(1.0, 1.0, 1.0, 0.8))
-                        .with_creature(self.creature_id)
-                        .with_limb_count(limb_count)
-                        .finish(meshes, materials),
-                )
+                .spawn(limb.0.with_color(color).with_creature(self.creature_id).with_limb_count(limb_count).finish(meshes, materials))
                 .id();
             entity_ids.insert(limb.1, id);
         }
@@ -268,7 +271,7 @@ impl BuildResult {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildParameters {
     pub root_transform: Transform,
 }
@@ -276,7 +279,7 @@ pub struct BuildParameters {
 impl DirectedGraphParameters for BuildParameters {}
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatureMorphologyGraph {
     pub graph: DirectedGraph<LimbNode, LimbConnection, BuildResult, BuildParameters>,
     pub root: Transform,

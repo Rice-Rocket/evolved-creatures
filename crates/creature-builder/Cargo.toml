@@ -18,6 +18,7 @@ random-derive.workspace = true
 
 bitflags = "2.4.2"
 rand = "0.8.5"
+serde = { version = "1.0.197", features = ["derive"] }
 
 [[test]]
 name = "creature-builder"

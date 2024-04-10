@@ -16,9 +16,10 @@ use effector::{CreatureContext, CreatureJointEffectors, JointContext};
 use joint::CreatureJoint;
 use limb::CreatureLimb;
 use sensor::{update_sensor_status, LimbCollisionSensor};
+use serde::{Deserialize, Serialize};
 
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
 pub struct CreatureId(pub usize);
 
 

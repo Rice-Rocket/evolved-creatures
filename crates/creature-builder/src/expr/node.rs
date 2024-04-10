@@ -1,4 +1,5 @@
 use random_derive::RandField;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     effector::{CreatureContext, CreatureContextElement},
@@ -6,7 +7,7 @@ use crate::{
 };
 
 
-#[derive(Clone, Debug, RandField)]
+#[derive(Clone, Debug, RandField, Serialize, Deserialize)]
 pub enum ExprUnaryOp {
     Sign,
     Abs,
@@ -17,7 +18,7 @@ pub enum ExprUnaryOp {
     Sigmoid,
 }
 
-#[derive(Clone, Debug, RandField)]
+#[derive(Clone, Debug, RandField, Serialize, Deserialize)]
 pub enum ExprBinaryOp {
     Add,
     Sub,
@@ -30,14 +31,14 @@ pub enum ExprBinaryOp {
     Atan,
 }
 
-#[derive(Clone, Debug, RandField)]
+#[derive(Clone, Debug, RandField, Serialize, Deserialize)]
 pub enum ExprTernaryOp {
     IfElse,
     Lerp,
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ExprNode {
     Value(CreatureContextElement),
     Constant(ExprValue),

@@ -1,15 +1,19 @@
 use bevy::prelude::*;
 use bevy_rapier3d::dynamics::{GenericJoint, ImpulseJoint, JointAxis};
+use serde::{Deserialize, Serialize};
 
-use crate::{CreatureId, effector::{CreatureJointEffectors, CreatureJointEffector}};
+use crate::{
+    effector::{CreatureJointEffector, CreatureJointEffectors},
+    CreatureId,
+};
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Serialize, Deserialize)]
 pub struct CreatureJoint {
-    pub creature: CreatureId
+    pub creature: CreatureId,
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CreatureJointBuilder {
     pub(crate) joint: CreatureJoint,
     pub(crate) parent: Entity,
@@ -32,26 +36,32 @@ impl CreatureJointBuilder {
     pub fn new() -> Self {
         Self::default()
     }
+
     pub fn with_parent(mut self, parent: Entity) -> Self {
         self.parent = parent;
         self
     }
+
     pub fn with_generic_joint(mut self, generic_joint: GenericJoint) -> Self {
         self.data = generic_joint;
         self
     }
+
     pub fn with_effector(mut self, effector: CreatureJointEffector, axis: JointAxis) -> Self {
         self.effectors.insert(effector, axis);
         self
     }
+
     pub fn with_effectors(mut self, effectors: CreatureJointEffectors) -> Self {
         self.effectors = effectors;
         self
     }
+
     pub fn with_creature(mut self, id: CreatureId) -> Self {
         self.joint.creature = id;
         self
     }
+
     pub fn finish(self) -> (ImpulseJoint, CreatureJointEffectors, CreatureJoint) {
         (ImpulseJoint::new(self.parent, self.data), self.effectors, self.joint)
     }

@@ -2,6 +2,7 @@ pub mod node;
 pub mod value;
 
 use node::ExprNode;
+use serde::{Deserialize, Serialize};
 use value::ExprValue;
 
 use crate::effector::CreatureContext;
@@ -16,7 +17,7 @@ use crate::effector::CreatureContext;
 //
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Expr {
     pub root: ExprNode,
 }

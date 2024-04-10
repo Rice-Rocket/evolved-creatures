@@ -5,6 +5,7 @@ use std::{
 
 use bevy::{ecs::system::SystemParam, prelude::*};
 use bevy_rapier3d::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     builder::placement::LimbAttachFace,
@@ -12,14 +13,14 @@ use crate::{
 };
 
 
-#[derive(PartialEq, Eq, Clone, Copy, Component, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Component, Debug, Serialize, Deserialize)]
 pub enum ContactFilterTag {
     GroundGroup,
     LimbGroup,
 }
 
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Serialize, Deserialize)]
 pub struct LimbCollisionSensor {
     pub(crate) faces: [LimbCollisionType; 6],
     pub(crate) entities: HashMap<Entity, LimbAttachFace>,
@@ -40,7 +41,7 @@ impl IndexMut<LimbAttachFace> for LimbCollisionSensor {
 }
 
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LimbCollisionType {
     SelfCollision,
     GroundCollision,

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     sensor::{ContactFilterTag, LimbCollisionSensor, LimbCollisionType},
@@ -9,7 +10,7 @@ use crate::{
 };
 
 
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Serialize, Deserialize)]
 pub struct CreatureLimb {
     pub creature: CreatureId,
     pub limb_count: usize,

@@ -1,5 +1,8 @@
 use behavior_evolver::{
-    evolution::{fitness::jump::JumpFitnessEval, state::EvolutionState, CreatureEvolutionPlugin},
+    evolution::{
+        fitness::jump::JumpFitnessEval, generation::GenerationTestingConfig, populate::GenerationPopulator, state::EvolutionState,
+        CreatureEvolutionPlugin,
+    },
     mutate::{MutateMorphology, MutateMorphologyParams, RandomMorphologyParams},
 };
 use bevy::prelude::*;
@@ -8,10 +11,7 @@ use creature_builder::{builder::node::CreatureMorphologyGraph, limb::CreatureLim
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                // present_mode: bevy::window::PresentMode::AutoNoVsync,
-                ..default()
-            }),
+            primary_window: Some(Window { present_mode: bevy::window::PresentMode::AutoNoVsync, ..default() }),
             ..default()
         }))
         .add_plugins(CreatureEvolutionPlugin::<JumpFitnessEval>::default())
@@ -22,8 +22,10 @@ fn main() {
         .run()
 }
 
-fn setup(mut state: ResMut<NextState<EvolutionState>>) {
-    state.set(EvolutionState::PopulatingGeneration);
+fn setup(mut commands: Commands, mut state: ResMut<NextState<EvolutionState>>) {
+    commands.insert_resource(GenerationTestingConfig { test_time: 180, session: String::from("default-session") });
+    commands.insert_resource(GenerationPopulator::new(0.3, 0.2, 10, MutateMorphologyParams::default(), RandomMorphologyParams::default()));
+    state.set(EvolutionState::BeginTrainingSession);
 }
 
 #[derive(Resource)]
@@ -60,7 +62,7 @@ fn update(
         mutate.mutate();
         let mut res = morph.evaluate();
         res.align_to_ground();
-        res.build(&mut commands, &mut meshes, &mut materials);
+        res.build(&mut commands, &mut meshes, &mut materials, Color::rgba(1.0, 1.0, 1.0, 0.8));
         commands.insert_resource(CurrentCreatureInfo(morph));
     }
 

@@ -2,6 +2,7 @@ pub mod fitness;
 pub mod generation;
 pub mod populate;
 pub mod state;
+pub mod write;
 
 use std::marker::PhantomData;
 
@@ -24,7 +25,8 @@ use self::{
     fitness::EvolutionFitnessEval,
     generation::{test_generation, EvolutionGeneration, GenerationTestingConfig},
     populate::{populate_generation, GenerationPopulator},
-    state::EvolutionState,
+    state::{begin_training_session, EvolutionState, EvolutionTrainingEvent},
+    write::write_generation,
 };
 
 #[derive(Default)]
@@ -39,7 +41,10 @@ impl<F: EvolutionFitnessEval + Send + Sync + Default + 'static> Plugin for Creat
             .init_resource::<EvolutionGeneration<F>>()
             .init_resource::<GenerationPopulator>()
             .init_resource::<GenerationTestingConfig>()
+            .add_event::<EvolutionTrainingEvent>()
             .add_systems(Update, test_generation::<F>)
+            .add_systems(OnEnter(EvolutionState::BeginTrainingSession), begin_training_session::<F>)
+            .add_systems(OnEnter(EvolutionState::WritingGeneration), write_generation::<F>)
             .add_systems(OnEnter(EvolutionState::PopulatingGeneration), populate_generation::<F>);
     }
 }
@@ -57,10 +62,7 @@ impl Plugin for CreatureEnvironmentPlugin {
             .add_plugins(ScreenDiagnosticsPlugin::default())
             .add_plugins(ScreenFrameDiagnosticsPlugin)
             .add_plugins(RapierPhysicsEditorPlugin)
-            .insert_resource(RapierConfiguration {
-                timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 0.75, substeps: 4 },
-                ..default()
-            });
+            .insert_resource(RapierConfiguration { timestep_mode: TimestepMode::Fixed { dt: 1.0 / 60.0, substeps: 4 }, ..default() });
     }
 }
 

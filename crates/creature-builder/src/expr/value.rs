@@ -1,6 +1,8 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Clone, Debug)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExprValue(pub f32);
 
 impl From<ExprValue> for f32 {

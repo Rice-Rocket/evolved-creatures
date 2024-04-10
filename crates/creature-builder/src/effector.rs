@@ -6,6 +6,7 @@ use bevy::{
     transform::components::Transform,
 };
 use bevy_rapier3d::dynamics::JointAxis;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     builder::placement::LimbAttachFace,
@@ -14,7 +15,7 @@ use crate::{
 };
 
 
-#[derive(Component, Clone, Debug, Default)]
+#[derive(Component, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CreatureJointEffectors {
     /// Ordered: [X, Y, Z, AngX, AngY, AngZ]
     pub effectors: [Option<CreatureJointEffector>; 6],
@@ -38,13 +39,13 @@ impl CreatureJointEffectors {
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CreatureJointEffector {
     pub expr: Expr,
 }
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CreatureContextElement {
     LocalJoint { element: JointContextElement },
     GlobalJoint { element: JointContextElement, joint: usize },
@@ -101,7 +102,7 @@ impl CreatureContext {
 }
 
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum JointContextElement {
     ParentContact { face: LimbAttachFace },
     ChildContact { face: LimbAttachFace },
