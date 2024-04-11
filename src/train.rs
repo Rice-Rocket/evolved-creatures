@@ -49,7 +49,7 @@ pub fn train(conf: TrainConfig) {
             ..default()
         }));
     } else {
-        app.add_plugins(MinimalPlugins);
+        app.add_plugins(MinimalPlugins).add_plugins(bevy::transform::TransformPlugin).add_plugins(bevy::hierarchy::HierarchyPlugin);
     }
 
     if conf.fitness_fn == "jump" {

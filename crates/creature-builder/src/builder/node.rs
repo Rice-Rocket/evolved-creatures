@@ -58,7 +58,7 @@ impl NodeData<LimbConnection, BuildResult, BuildParameters> for LimbNode {
                 };
                 let should_spawn = is_terminal == self.terminal_only;
 
-                // ! Issue here
+                // TODO: Terminal only issue here
                 let Some(prev_transform) = result.transforms.get(&from_node_id).map(|x| x.peek().unwrap()) else {
                     error!("Error: couldn't find previous transform when evaluating creature morphology graph. Probably because terminal only was set to true");
                     info!("id: {:?}", id);
@@ -215,7 +215,15 @@ impl DirectedGraphResult for BuildResult {
 }
 
 impl BuildResult {
+    pub fn ensure_nonempty(&mut self) {
+        if self.limb_build_queue.is_empty() {
+            self.limb_build_queue.push_back((CreatureLimbBundle::new(), 0))
+        }
+    }
+
     pub fn align_to_ground(&mut self) {
+        self.ensure_nonempty();
+
         let mut mini = f32::MAX;
         self.limb_build_queue.iter().for_each(|limb| {
             let transform = limb.0.transform;
@@ -242,10 +250,12 @@ impl BuildResult {
             panic!("Limb build queue contains NaN or infinite value")
         }
 
-        self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= mini - 0.1);
+        self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= mini - 0.01);
     }
 
     pub fn build_nowindow(&mut self, commands: &mut Commands) {
+        self.ensure_nonempty();
+
         let mut entity_ids = HashMap::new();
         let limb_count = self.limb_build_queue.len();
         while let Some(limb) = self.limb_build_queue.pop_front() {
@@ -268,6 +278,8 @@ impl BuildResult {
         materials: &mut ResMut<Assets<StandardMaterial>>,
         color: Color,
     ) {
+        self.ensure_nonempty();
+
         let mut entity_ids = HashMap::new();
         let limb_count = self.limb_build_queue.len();
         while let Some(limb) = self.limb_build_queue.pop_front() {

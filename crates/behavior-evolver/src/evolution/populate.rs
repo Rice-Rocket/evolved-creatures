@@ -103,8 +103,6 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
     let rand_amt = (populator.rand_percent * populator.pop_size as f32).ceil() as usize;
 
     let gen_best_fitness = generation.fitnesses[elite[0].0];
-    println!("{}", gen_best_fitness);
-    // Somehow absurdly large fitnesses are getting in here
     if populator.best_fitness < gen_best_fitness {
         populator.best_fitness = gen_best_fitness;
         populator.best_creature = elite[0].1.creature.0;

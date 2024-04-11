@@ -101,6 +101,8 @@ fn setup_ground_nowindow(mut commands: Commands) {
         Friction { coefficient: 0.3, combine_rule: CoefficientCombineRule::Average },
         Restitution { coefficient: 0.0, combine_rule: CoefficientCombineRule::Average },
         ColliderMassProperties::Density(1.0),
+        Transform::from_xyz(0.0, -5.0, 0.0),
+        GlobalTransform::default(),
         Name::new("Ground"),
     ));
 }
