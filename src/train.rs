@@ -1,6 +1,6 @@
 use behavior_evolver::{
     evolution::{
-        fitness::jump::JumpFitnessEval,
+        fitness::{jump::JumpFitnessEval, walk::WalkFitnessEval},
         generation::GenerationTestingConfig,
         populate::GenerationPopulator,
         state::{EvolutionState, EvolutionTrainingEvent},
@@ -56,6 +56,8 @@ pub fn train(conf: TrainConfig) {
 
     if conf.fitness_fn == "jump" {
         app.add_plugins(CreatureEvolutionPlugin::<JumpFitnessEval>::new(conf.visual));
+    } else if conf.fitness_fn == "walk" {
+        app.add_plugins(CreatureEvolutionPlugin::<WalkFitnessEval>::new(conf.visual));
     } else {
         panic!("Invalid fitness function");
     }
@@ -101,14 +103,14 @@ fn print_info(
                 template.push_str("{spinner:.green} [{elapsed}] [{bar:50.white/blue}] {pos}/{len} ({eta})");
 
                 bar.0 = ProgressBar::new(conf.pop_size as u64)
-                    .with_style(ProgressStyle::with_template(&template).unwrap().progress_chars("=> "));
+                    .with_style(ProgressStyle::with_template(&template).unwrap().progress_chars("=> ").tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"));
             },
         }
     }
 }
 
 fn setup(mut commands: Commands, mut state: ResMut<NextState<EvolutionState>>, conf: Res<TrainConfig>) {
-    commands.insert_resource(GenerationTestingConfig { test_time: conf.test_time, session: conf.session.clone() });
+    commands.insert_resource(GenerationTestingConfig { test_time: conf.test_time, session: conf.session.clone(), wait_for_fall: true });
     commands.insert_resource(GenerationPopulator::new(
         conf.elitism,
         conf.rand_percent,

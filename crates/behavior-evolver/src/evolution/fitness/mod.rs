@@ -1,4 +1,5 @@
 pub mod jump;
+pub mod walk;
 
 use bevy::transform::components::Transform;
 use bevy_rapier3d::dynamics::Velocity;
@@ -6,6 +7,7 @@ use bevy_rapier3d::dynamics::Velocity;
 
 pub struct FitnessEvalInput {
     pub limbs: Vec<(Transform, Velocity)>,
+    pub test_time: usize,
 }
 
 

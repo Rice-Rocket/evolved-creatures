@@ -75,7 +75,7 @@ fn print_help(args: &[String]) {
     println!();
     println!("    -f, --fitness <FITNESS_FN>");
     println!("            The fitness function to use when evaluating creatures");
-    println!("            Options: [jump]");
+    println!("            Options: [jump, walk]");
     println!("            Default: jump");
     println!();
     println!("PLAYBACK OPTIONS:");
@@ -118,7 +118,7 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
                         expect_res(expect(opts.next(), "Expected <RAND_PERCENT>")?.parse::<f32>(), "Invalid <RAND_PERCENT>")?;
                 } else if arg == "-f" || arg == "--fitness" {
                     let fun = expect(opts.next(), "Expected <FITNESS_FN>")?;
-                    if fun == "jump" {
+                    if fun == "jump" || fun == "walk" {
                         train_config.fitness_fn = fun.to_string();
                     } else {
                         return err("Invalid <FITNESS_FN>");

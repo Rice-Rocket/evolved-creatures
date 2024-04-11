@@ -89,6 +89,10 @@ impl Plugin for CreatureEnvironmentPlugin {
 }
 
 
+#[derive(Component)]
+pub struct GroundMarker;
+
+
 fn setup_ground_nowindow(mut commands: Commands) {
     commands.spawn((
         RigidBody::KinematicPositionBased,
@@ -97,12 +101,13 @@ fn setup_ground_nowindow(mut commands: Commands) {
         ActiveEvents::COLLISION_EVENTS,
         ActiveHooks::FILTER_CONTACT_PAIRS,
         ContactFilterTag::GroundGroup,
-        Collider::cuboid(50.0, 5.0, 50.0),
+        Collider::cuboid(1000.0, 5.0, 1000.0),
         Friction { coefficient: 0.3, combine_rule: CoefficientCombineRule::Average },
         Restitution { coefficient: 0.0, combine_rule: CoefficientCombineRule::Average },
         ColliderMassProperties::Density(1.0),
         Transform::from_xyz(0.0, -5.0, 0.0),
         GlobalTransform::default(),
+        GroundMarker,
         Name::new("Ground"),
     ));
 }
@@ -116,7 +121,7 @@ fn setup_ground(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut ma
         ActiveEvents::COLLISION_EVENTS,
         ActiveHooks::FILTER_CONTACT_PAIRS,
         ContactFilterTag::GroundGroup,
-        Collider::cuboid(50.0, 5.0, 50.0),
+        Collider::cuboid(1000.0, 5.0, 1000.0),
         Friction { coefficient: 0.3, combine_rule: CoefficientCombineRule::Average },
         Restitution { coefficient: 0.0, combine_rule: CoefficientCombineRule::Average },
         ColliderMassProperties::Density(1.0),
@@ -132,6 +137,7 @@ fn setup_ground(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>, mut ma
             transform: Transform::from_xyz(0.0, -5.0, 0.0),
             ..default()
         },
+        GroundMarker,
         Name::new("Ground"),
     ));
 }

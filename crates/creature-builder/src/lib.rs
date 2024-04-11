@@ -27,11 +27,12 @@ pub struct CreatureBehaviorConfig {
     pub max_force: f32,
     pub max_rel_linvel: f32,
     pub max_angvel: f32,
+    pub disable_behavior: bool,
 }
 
 impl Default for CreatureBehaviorConfig {
     fn default() -> Self {
-        Self { max_force: 0.05, max_rel_linvel: 10.0, max_angvel: 10.0 }
+        Self { max_force: 0.05, max_rel_linvel: 10.0, max_angvel: 10.0, disable_behavior: false }
     }
 }
 
@@ -42,6 +43,10 @@ fn behavior_main(
     mut limbs: Query<(&LimbCollisionSensor, &Transform, &mut ExternalImpulse, &mut Velocity), With<CreatureLimb>>,
     config: Res<CreatureBuilderConfig>,
 ) {
+    if config.behavior.disable_behavior {
+        return;
+    }
+
     let mut creature_contexts = HashMap::new();
     let mut joint_indices = HashMap::new();
 
