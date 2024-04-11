@@ -52,6 +52,38 @@ fn train_path(session: &str) -> TrainingPaths {
     }
 }
 
+pub fn load_creature(session: &str, id: usize) -> CreatureMorphologyGraph {
+    let path = train_path(session).creatures.join(format!("id-{}.ron", id));
+    let creature_data = fs::read_to_string(path).expect("Unable to read existing creature data file");
+    let creature_de: CreatureMorphologyGraph = ron::de::from_str(&creature_data).expect("Unable to parse creature data");
+    creature_de
+}
+
+pub fn load_generation(session: &str, id: usize) -> Vec<CreatureMorphologyGraph> {
+    let train_dir = train_path(session);
+    let gen_data =
+        fs::read_to_string(train_dir.generations.join(format!("gen-{}.dat", id))).expect("Unable to read existing generation file");
+    let mut population = Vec::new();
+
+    for line in gen_data[..gen_data.len() - 1].split('\n').skip(2) {
+        let mut elements = line.split("  ");
+        let mut grab_value = |offset: usize| {
+            let text = &elements.next().expect("Invalid generation file")[offset..];
+            &text[..text.len() - 1]
+        };
+
+        let id: usize = grab_value(5).parse().expect("Failed to parse id in generation file");
+        let creature_data =
+            fs::read_to_string(train_dir.creatures.join(format!("id-{}.ron", id))).expect("Unable to read existing creature data file");
+        let creature_de: CreatureMorphologyGraph = ron::de::from_str(&creature_data).expect("Unable to parse creature data");
+
+        population.push(creature_de);
+    }
+
+    population
+}
+
+
 pub fn write_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'static>(
     generation: Res<EvolutionGeneration<F>>,
     populator: Res<GenerationPopulator>,

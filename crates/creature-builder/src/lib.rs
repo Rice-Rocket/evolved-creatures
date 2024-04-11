@@ -31,7 +31,7 @@ pub struct CreatureBehaviorConfig {
 
 impl Default for CreatureBehaviorConfig {
     fn default() -> Self {
-        Self { max_force: 0.025, max_rel_linvel: 10.0, max_angvel: 10.0 }
+        Self { max_force: 0.05, max_rel_linvel: 10.0, max_angvel: 10.0 }
     }
 }
 

@@ -24,6 +24,9 @@ impl EvolutionFitnessEval for JumpFitnessEval {
                 .min((c - x - y - z).y);
             mini = mini.min(min_y);
         });
+        if mini == f32::MAX {
+            mini = f32::MIN;
+        }
         self.max_height = self.max_height.max(mini);
     }
 

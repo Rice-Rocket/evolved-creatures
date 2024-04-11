@@ -21,6 +21,7 @@ pub struct TrainConfig {
     pub elitism: f32,
     pub rand_percent: f32,
     pub pop_size: usize,
+    pub num_mutations: usize,
     pub fitness_fn: String,
 }
 
@@ -31,9 +32,10 @@ impl Default for TrainConfig {
             visual: false,
             silent: false,
             test_time: 180,
-            elitism: 0.3,
-            rand_percent: 0.2,
-            pop_size: 100,
+            elitism: 0.25,
+            rand_percent: 0.03,
+            pop_size: 250,
+            num_mutations: 5,
             fitness_fn: String::from("jump"),
         }
     }

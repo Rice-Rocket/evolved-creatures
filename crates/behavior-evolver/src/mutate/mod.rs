@@ -287,6 +287,7 @@ impl<'a> MutateMorphology<'a> {
 
         // Step 5: garbage collection
         let mut connected_nodes = HashSet::new();
+        connected_nodes.insert(graph_root);
         for edge in self.morph.edges() {
             connected_nodes.insert(edge.from);
             connected_nodes.insert(edge.to);

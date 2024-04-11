@@ -250,7 +250,7 @@ impl BuildResult {
             panic!("Limb build queue contains NaN or infinite value")
         }
 
-        self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= mini - 0.01);
+        self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= mini - 0.1);
     }
 
     pub fn build_nowindow(&mut self, commands: &mut Commands) {
