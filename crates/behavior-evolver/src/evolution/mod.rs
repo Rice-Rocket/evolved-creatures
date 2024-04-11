@@ -7,7 +7,6 @@ pub mod write;
 use std::marker::PhantomData;
 
 use bevy::prelude::*;
-use bevy_editor_pls::editor_controls::rapier::RapierPhysicsEditorPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::{
     dynamics::{CoefficientCombineRule, GravityScale, RigidBody, Velocity},
@@ -61,7 +60,6 @@ impl Plugin for CreatureEnvironmentPlugin {
             .add_plugins(PanOrbitCameraPlugin)
             .add_plugins(ScreenDiagnosticsPlugin::default())
             .add_plugins(ScreenFrameDiagnosticsPlugin)
-            .add_plugins(RapierPhysicsEditorPlugin)
             .insert_resource(RapierConfiguration { timestep_mode: TimestepMode::Fixed { dt: 1.0 / 60.0, substeps: 4 }, ..default() });
     }
 }

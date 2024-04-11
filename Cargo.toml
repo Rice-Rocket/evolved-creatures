@@ -7,37 +7,22 @@ edition = "2021"
 
 [workspace]
 members = [
-    "crates/rigid-body-engine-3d",
-    "crates/custom_bevy_editor/crates/bevy_editor_pls",
-    "crates/custom_bevy_editor/crates/bevy_editor_pls_core",
-    "crates/custom_bevy_editor/crates/bevy_editor_pls_default_windows",
-    "crates/data-structure-utils", 
     "crates/behavior-evolver", 
+    "crates/creature-builder",
+    "crates/data-structure-utils", 
     "crates/random-derive", 
 ]
 
 [dependencies]
-# soft-body-engine-2d = { path = "crates/soft-body-engine-2d" }
-rigid-body-engine-3d.workspace = true
-bevy_editor_pls.workspace = true
 creature-builder.workspace = true
 
 bevy.workspace = true
 bevy_rapier3d.workspace = true
 
-bevy-inspector-egui.workspace = true
-bevy_egui.workspace = true
 bevy_screen_diagnostics.workspace = true
 bevy_panorbit_camera.workspace = true
-bevy_easings.workspace = true
-egui.workspace = true
 
 [workspace.dependencies]
-bevy_editor_pls = { version = "0.6.0", path = "crates/custom_bevy_editor/crates/bevy_editor_pls" }
-bevy_editor_pls_core = { version = "0.6.0", path = "crates/custom_bevy_editor/crates/bevy_editor_pls_core" }
-bevy_editor_pls_default_windows = { version = "0.6.0", path = "crates/custom_bevy_editor/crates/bevy_editor_pls_default_windows" }
-
-rigid-body-engine-3d = { path = "crates/rigid-body-engine-3d" }
 creature-builder = { path = "crates/creature-builder" }
 behavior-evolver = { path = "crates/behavior-evolver" }
 
@@ -47,13 +32,8 @@ random-derive = { path = "crates/random-derive" }
 bevy_rapier3d = { version = "0.24.0", features = [ "enhanced-determinism", "serde-serialize" ] }
 bevy = { version = "0.12.0", features = [ "serialize" ] }
 
-bevy_egui = "0.24.0"
 bevy_screen_diagnostics = "0.4"
 bevy_panorbit_camera = "0.10"
-bevy_easings = "0.12"
-bevy-inspector-egui = "0.21.0"
-egui = "0.23"
-egui-gizmo = "0.12"
 
 [profile.dev.package."*"]
 opt-level = 3

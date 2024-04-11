@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_editor_pls::prelude::*;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_rapier3d::prelude::*;
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
@@ -35,7 +34,6 @@ fn main() {
         .add_plugins(PanOrbitCameraPlugin)
         .add_plugins(ScreenDiagnosticsPlugin::default())
         .add_plugins(ScreenFrameDiagnosticsPlugin)
-        .add_plugins(RapierPhysicsEditorPlugin)
         .insert_resource(RapierConfiguration {
             timestep_mode: TimestepMode::Variable { max_dt: 1.0 / 60.0, time_scale: 1.0, substeps: 1 },
             // gravity: Vec3::ZERO,

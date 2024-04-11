@@ -15,9 +15,7 @@ fn main() {
             ..default()
         }))
         .add_plugins(CreatureEvolutionPlugin::<JumpFitnessEval>::default())
-        // .add_plugins(CreatureEnvironmentPlugin)
         .add_systems(Startup, setup)
-        // .add_systems(Update, update)
         .insert_resource(CurrentCreatureInfo(CreatureMorphologyGraph::new(CreatureId(0))))
         .run()
 }
