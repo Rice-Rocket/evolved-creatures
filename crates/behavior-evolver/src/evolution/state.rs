@@ -23,7 +23,7 @@ pub enum EvolutionState {
 #[derive(Event)]
 pub enum EvolutionTrainingEvent {
     FinishedTestingCreature,
-    FinishedTestingGeneration(usize),
+    StartTestingGeneration(usize),
 }
 
 

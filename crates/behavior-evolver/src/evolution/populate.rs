@@ -2,7 +2,11 @@ use bevy::prelude::*;
 use creature_builder::CreatureId;
 use serde::{Deserialize, Serialize};
 
-use super::{fitness::EvolutionFitnessEval, generation::EvolutionGeneration, state::EvolutionState};
+use super::{
+    fitness::EvolutionFitnessEval,
+    generation::EvolutionGeneration,
+    state::{EvolutionState, EvolutionTrainingEvent},
+};
 use crate::mutate::{MutateMorphology, MutateMorphologyParams, RandomMorphologyParams};
 
 
@@ -20,6 +24,7 @@ pub struct GenerationPopulator {
     pub rand_params: RandomMorphologyParams,
     pub current_id: usize,
     pub best_fitness: f32,
+    pub best_creature: usize,
 }
 
 impl GenerationPopulator {
@@ -30,7 +35,7 @@ impl GenerationPopulator {
         mutate_params: MutateMorphologyParams,
         rand_params: RandomMorphologyParams,
     ) -> Self {
-        Self { elitism, rand_percent, pop_size, mutate_params, rand_params, current_id: 0, best_fitness: f32::MIN }
+        Self { elitism, rand_percent, pop_size, mutate_params, rand_params, current_id: 0, best_fitness: 0.0, best_creature: 0 }
     }
 }
 
@@ -43,7 +48,8 @@ impl Default for GenerationPopulator {
             mutate_params: MutateMorphologyParams::default(),
             rand_params: RandomMorphologyParams::default(),
             current_id: 0,
-            best_fitness: f32::MIN,
+            best_fitness: 0.0,
+            best_creature: 0,
         }
     }
 }
@@ -70,6 +76,7 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
     mut generation: ResMut<EvolutionGeneration<F>>,
     mut populator: ResMut<GenerationPopulator>,
     mut next_state: ResMut<NextState<EvolutionState>>,
+    mut training_evw: EventWriter<EvolutionTrainingEvent>,
 ) {
     if generation.population.is_empty() {
         let mut rng = rand::thread_rng();
@@ -79,6 +86,7 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
             populator.current_id += 1;
         }
         next_state.set(EvolutionState::EvaluatingCreature);
+        training_evw.send(EvolutionTrainingEvent::StartTestingGeneration(generation.current_generation));
         return;
     }
 
@@ -94,10 +102,16 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
     let retained = (populator.elitism * populator.pop_size as f32).ceil() as usize;
     let rand_amt = (populator.rand_percent * populator.pop_size as f32).ceil() as usize;
 
+    let gen_best_fitness = generation.fitnesses[elite[0].0];
+    println!("{}", gen_best_fitness);
+    // Somehow absurdly large fitnesses are getting in here
+    if populator.best_fitness < gen_best_fitness {
+        populator.best_fitness = gen_best_fitness;
+        populator.best_creature = elite[0].1.creature.0;
+    }
+
     elite.truncate(retained);
     generation.population = elite.iter().map(|(_, x)| (*x).clone()).collect();
-
-    populator.best_fitness = *generation.fitnesses.iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
     generation.fitnesses.clear();
 
     generation.populate_flags.clear();
@@ -123,5 +137,6 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
         populator.current_id += 1;
     }
 
+    training_evw.send(EvolutionTrainingEvent::StartTestingGeneration(generation.current_generation));
     next_state.set(EvolutionState::EvaluatingCreature);
 }

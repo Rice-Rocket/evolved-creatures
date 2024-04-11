@@ -36,6 +36,73 @@ pub struct EvolutionGeneration<F: EvolutionFitnessEval + Send + Sync + Default +
 }
 
 
+pub(crate) fn test_generation_nowindow<F: EvolutionFitnessEval + Send + Sync + Default + 'static>(
+    mut commands: Commands,
+    mut generation: ResMut<EvolutionGeneration<F>>,
+    config: Res<GenerationTestingConfig>,
+    state: Res<State<EvolutionState>>,
+    mut next_state: ResMut<NextState<EvolutionState>>,
+    limbs: Query<(Entity, &CreatureLimb, &Transform, &Velocity)>,
+    mut training_evw: EventWriter<EvolutionTrainingEvent>,
+) {
+    match state.get() {
+        EvolutionState::EvaluatingCreature => {
+            match generation.current_test {
+                Some(i) => {
+                    let eval = generation.current_fitness.as_ref().unwrap().final_eval();
+                    generation.fitnesses.push(eval);
+                    generation.current_fitness = Some(F::default());
+                    generation.current_test = Some(i + 1);
+                },
+                None => {
+                    generation.fitnesses.clear();
+                    generation.current_fitness = Some(F::default());
+                    generation.current_test = Some(0);
+                },
+            };
+            if generation.current_test.unwrap() < generation.population.len() {
+                if let Some(id) = generation.current_creature {
+                    limbs
+                        .iter()
+                        .filter(|(_, limb, _, _)| limb.creature == id)
+                        .for_each(|(entity, _, _, _)| commands.entity(entity).despawn());
+                }
+                let morph = &generation.population[generation.current_test.unwrap()];
+                let mut result = morph.evaluate();
+                generation.current_creature = Some(morph.creature);
+                result.align_to_ground();
+                result.build_nowindow(&mut commands);
+                next_state.set(EvolutionState::TestingCreature);
+            } else {
+                generation.current_test = None;
+                generation.current_fitness = None;
+                next_state.set(EvolutionState::WritingGeneration);
+            }
+        },
+        EvolutionState::TestingCreature => {
+            let index = generation.current_test.unwrap();
+            let morph = &generation.population[index];
+            let creature_id = morph.creature;
+
+            generation.current_train_time += 1;
+
+            let limb_pos_vels: Vec<_> =
+                limbs.iter().filter(|(_, limb, _, _)| limb.creature == creature_id).map(|(_, _, pos, vel)| (*pos, *vel)).collect();
+
+            generation.current_fitness.as_mut().unwrap().eval_continuous(FitnessEvalInput { limbs: limb_pos_vels });
+
+            if generation.current_train_time > config.test_time {
+                generation.current_train_time = 0;
+                training_evw.send(EvolutionTrainingEvent::FinishedTestingCreature);
+                next_state.set(EvolutionState::EvaluatingCreature);
+            }
+        },
+
+        _ => (),
+    }
+}
+
+
 pub(crate) fn test_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'static>(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -83,7 +150,7 @@ pub(crate) fn test_generation<F: EvolutionFitnessEval + Send + Sync + Default + 
             } else {
                 generation.current_test = None;
                 generation.current_fitness = None;
-                training_evw.send(EvolutionTrainingEvent::FinishedTestingGeneration(generation.current_generation));
+                training_evw.send(EvolutionTrainingEvent::StartTestingGeneration(generation.current_generation));
                 next_state.set(EvolutionState::WritingGeneration);
             }
         },

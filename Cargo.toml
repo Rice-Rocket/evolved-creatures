@@ -14,6 +14,7 @@ members = [
 ]
 
 [dependencies]
+behavior-evolver.workspace = true
 creature-builder.workspace = true
 
 bevy.workspace = true
@@ -22,6 +23,9 @@ bevy_rapier3d.workspace = true
 bevy_screen_diagnostics.workspace = true
 bevy_panorbit_camera.workspace = true
 
+indicatif = "0.17.8"
+termion = "3.0.0"
+
 [workspace.dependencies]
 creature-builder = { path = "crates/creature-builder" }
 behavior-evolver = { path = "crates/behavior-evolver" }
@@ -29,7 +33,7 @@ behavior-evolver = { path = "crates/behavior-evolver" }
 data-structure-utils = { path = "crates/data-structure-utils" }
 random-derive = { path = "crates/random-derive" }
 
-bevy_rapier3d = { version = "0.24.0", features = [ "enhanced-determinism", "serde-serialize" ] }
+bevy_rapier3d = { version = "0.24.0", default-features = false, features = [ "dim3", "enhanced-determinism", "serde-serialize" ] }
 bevy = { version = "0.12.0", features = [ "serialize" ] }
 
 bevy_screen_diagnostics = "0.4"

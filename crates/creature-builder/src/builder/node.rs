@@ -245,6 +245,22 @@ impl BuildResult {
         self.limb_build_queue.iter_mut().for_each(|x| x.0.transform.translation.y -= mini - 0.1);
     }
 
+    pub fn build_nowindow(&mut self, commands: &mut Commands) {
+        let mut entity_ids = HashMap::new();
+        let limb_count = self.limb_build_queue.len();
+        while let Some(limb) = self.limb_build_queue.pop_front() {
+            let id = commands.spawn(limb.0.with_creature(self.creature_id).with_limb_count(limb_count)).id();
+            entity_ids.insert(limb.1, id);
+        }
+
+        while let Some(joint) = self.joint_build_queue.pop_front() {
+            let parent = entity_ids.get(&joint.2).unwrap();
+            commands
+                .entity(*entity_ids.get(&joint.1).unwrap())
+                .insert(joint.0.with_parent(*parent).with_creature(self.creature_id).finish());
+        }
+    }
+
     pub fn build(
         &mut self,
         commands: &mut Commands,

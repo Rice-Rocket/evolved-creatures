@@ -85,14 +85,16 @@ pub fn write_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'stati
     if session_data.exists() {
         let mut data = String::new();
         data.push_str(&format!(
-            "--- Session data file ---\n\nname = [{}]\ncurrent_generation = [{}]\ncurrent_id = [{}]",
-            &gen_test_conf.session, cur_gen, populator.current_id
+            "--- Session data file ---\n\nname = [{}]\ncurrent_generation = [{}]\ncurrent_id = [{}]\nbest_fitness = [{}]\nbest_creature = \
+             [{}]",
+            &gen_test_conf.session, cur_gen, populator.current_id, populator.best_fitness, populator.best_creature,
         ));
         fs::write(session_data, data).expect("Failed to write session data file");
     } else {
         let mut data = String::new();
         data.push_str(&format!(
-            "--- Session data file ---\n\nname = [{}]\ncurrent_generation = [-1]\ncurrent_id = [-1]",
+            "--- Session data file ---\n\nname = [{}]\ncurrent_generation = [-1]\ncurrent_id = [-1]\nbest_fitness = [0.0]\nbest_creature \
+             = [0]",
             &gen_test_conf.session
         ));
         fs::write(session_data, data).expect("Failed to write session data file");
@@ -117,19 +119,27 @@ pub fn load_session<F: EvolutionFitnessEval + Send + Sync + Default + 'static>(
     if session_data.exists() {
         let data = fs::read_to_string(session_data).expect("Failed to read existing session.dat file");
 
-        let cur_gen_start = data.find("current_generation").expect("Invalid session.dat file") + 22;
-        let cur_gen_len = data[cur_gen_start..].find(']').expect("Invalid session.dat file");
-        let cur_gen_data = data[cur_gen_start..cur_gen_start + cur_gen_len].parse::<isize>().expect("Invalid session.dat file");
+        fn grab_session_data<T: std::str::FromStr>(data: &str, text: &str, offset: usize) -> T
+        where
+            <T as std::str::FromStr>::Err: std::fmt::Debug,
+        {
+            let start = data.find(text).expect("Invalid session.dat file") + offset;
+            let length = data[start..].find(']').expect("Invalid session.dat file");
+            data[start..start + length].parse::<T>().expect("Invalid session.dat file")
+        }
 
-        let cur_id_start = data.find("current_id").expect("Invalid session.dat file") + 14;
-        let cur_id_len = data[cur_id_start..].find(']').expect("Invalid session.dat file");
-        let cur_id_data = data[cur_id_start..cur_id_start + cur_id_len].parse::<isize>().expect("Invalid session.dat file");
+        let cur_gen_data: isize = grab_session_data(&data, "current_generation", 22);
+        let cur_id_data: isize = grab_session_data(&data, "current_id", 14);
+        let best_fitness: f32 = grab_session_data(&data, "best_fitness", 16);
+        let best_creature: usize = grab_session_data(&data, "best_creature", 17);
 
         if cur_gen_data < 0 {
             return;
         };
         generation.current_generation = cur_gen_data as usize;
         populator.current_id = cur_id_data as usize;
+        populator.best_fitness = best_fitness;
+        populator.best_creature = best_creature;
 
         let gen_data = fs::read_to_string(train_dir.generations.join(format!("gen-{}.dat", generation.current_generation)))
             .expect("Unable to read existing generation file");
