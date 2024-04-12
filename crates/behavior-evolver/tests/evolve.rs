@@ -27,7 +27,14 @@ fn setup(mut commands: Commands, mut state: ResMut<NextState<EvolutionState>>) {
         wait_for_fall: false,
         ..Default::default()
     });
-    commands.insert_resource(GenerationPopulator::new(0.3, 0.2, 10, MutateMorphologyParams::default(), RandomMorphologyParams::default()));
+    commands.insert_resource(GenerationPopulator::new(
+        0.3,
+        0.2,
+        10,
+        MutateMorphologyParams::default(),
+        RandomMorphologyParams::default(),
+        20,
+    ));
     state.set(EvolutionState::BeginTrainingSession);
 }
 

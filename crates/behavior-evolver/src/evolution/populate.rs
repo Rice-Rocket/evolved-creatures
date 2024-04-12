@@ -35,6 +35,7 @@ impl GenerationPopulator {
         pop_size: usize,
         mutate_params: MutateMorphologyParams,
         rand_params: RandomMorphologyParams,
+        num_mutations: usize,
     ) -> Self {
         Self {
             elitism,
@@ -45,7 +46,7 @@ impl GenerationPopulator {
             current_id: 0,
             best_fitness: -1000000000000.0,
             best_creature: 0,
-            num_mutations: 20,
+            num_mutations,
         }
     }
 }
@@ -61,7 +62,7 @@ impl Default for GenerationPopulator {
             current_id: 0,
             best_fitness: 0.0,
             best_creature: 0,
-            num_mutations: 5,
+            num_mutations: 20,
         }
     }
 }
@@ -131,14 +132,18 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
 
     let mut rng = rand::thread_rng();
     let mut params = populator.mutate_params.clone();
-    for i in 0..populator.pop_size - retained - rand_amt {
+    let mutate_amt = populator.pop_size - retained - rand_amt;
+    for i in 0..mutate_amt {
         let mut morph = generation.population[i % retained].clone();
         morph.creature = CreatureId(populator.current_id);
         populator.current_id += 1;
         let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
-        for _ in 0..populator.num_mutations {
+
+        let n_mutations = (populator.num_mutations as f32 * (i as f32 / (mutate_amt - 1) as f32).sqrt()).ceil() as usize;
+        for _ in 0..n_mutations {
             mutate.mutate();
         }
+
         generation.population.push(morph);
         generation.populate_flags.push(CreaturePopulateFlag::Mutated);
     }

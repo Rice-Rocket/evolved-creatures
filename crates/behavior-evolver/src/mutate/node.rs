@@ -32,7 +32,7 @@ impl Default for RandomNodeParams {
     fn default() -> Self {
         // Currently, terminal only is not support and will crash the program.
         // TODO: Fix this
-        Self { density: 0.5..3.0, friction: 0.1..0.9, restitution: 0.1..0.9, terminal_freq: 0.0 /* 0.2 */, recursive_limit: 1..6 }
+        Self { density: 0.5..3.0, friction: 0.5..3.0, restitution: 0.1..0.9, terminal_freq: 0.0 /* 0.2 */, recursive_limit: 1..6 }
     }
 }
 

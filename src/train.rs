@@ -122,6 +122,7 @@ fn setup(mut commands: Commands, mut state: ResMut<NextState<EvolutionState>>, c
         conf.pop_size,
         MutateMorphologyParams::default(),
         RandomMorphologyParams::default(),
+        conf.num_mutations,
     ));
     state.set(EvolutionState::BeginTrainingSession);
 }
