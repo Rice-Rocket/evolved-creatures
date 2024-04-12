@@ -21,7 +21,12 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, mut state: ResMut<NextState<EvolutionState>>) {
-    commands.insert_resource(GenerationTestingConfig { test_time: 180, session: String::from("default-session"), wait_for_fall: false });
+    commands.insert_resource(GenerationTestingConfig {
+        test_time: 180,
+        session: String::from("default-session"),
+        wait_for_fall: false,
+        ..Default::default()
+    });
     commands.insert_resource(GenerationPopulator::new(0.3, 0.2, 10, MutateMorphologyParams::default(), RandomMorphologyParams::default()));
     state.set(EvolutionState::BeginTrainingSession);
 }

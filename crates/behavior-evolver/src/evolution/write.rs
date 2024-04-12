@@ -83,6 +83,19 @@ pub fn load_generation(session: &str, id: usize) -> Vec<CreatureMorphologyGraph>
     population
 }
 
+pub fn grab_best_creature(session: &str) -> Option<usize> {
+    let train_dir = train_path(session);
+    let session_data = train_dir.session.join("session.dat");
+    if session_data.exists() {
+        let data = fs::read_to_string(session_data).expect("Failed to read existing session.dat file");
+
+        let start = data.find("best_creature").expect("Invalid session.dat file") + 17;
+        let length = data[start..].find(']').expect("Invalid session.dat file");
+        return Some(data[start..start + length].parse::<usize>().expect("Invalid session.dat file"));
+    }
+    None
+}
+
 
 pub fn write_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'static>(
     generation: Res<EvolutionGeneration<F>>,
@@ -125,8 +138,8 @@ pub fn write_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'stati
     } else {
         let mut data = String::new();
         data.push_str(&format!(
-            "--- Session data file ---\n\nname = [{}]\ncurrent_generation = [-1]\ncurrent_id = [-1]\nbest_fitness = [0.0]\nbest_creature \
-             = [0]",
+            "--- Session data file ---\n\nname = [{}]\ncurrent_generation = [-1]\ncurrent_id = [-1]\nbest_fitness = \
+             [-1000000000000.0]\nbest_creature = [0]",
             &gen_test_conf.session
         ));
         fs::write(session_data, data).expect("Failed to write session data file");

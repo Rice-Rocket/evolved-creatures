@@ -3,7 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use behavior_evolver::evolution::{write, CreatureEnvironmentPlugin, GroundMarker};
+use behavior_evolver::evolution::{generation::GenerationTestingConfig, write, CreatureEnvironmentPlugin, GroundMarker};
 use bevy::prelude::*;
 use bevy_rapier3d::{
     dynamics::Velocity,
@@ -14,6 +14,7 @@ use creature_builder::{builder::node::CreatureMorphologyGraph, config::CreatureB
 pub enum PlaybackMode {
     Creature(usize),
     Generation(usize),
+    BestCreature(usize),
 }
 
 #[derive(Resource)]
@@ -21,11 +22,12 @@ pub struct PlaybackConfig {
     pub session: String,
     pub mode: PlaybackMode,
     pub auto_cycle: Option<Duration>,
+    pub wait_for_fall_timeout: usize,
 }
 
 impl Default for PlaybackConfig {
     fn default() -> Self {
-        Self { session: String::from("default-session"), mode: PlaybackMode::Creature(0), auto_cycle: None }
+        Self { session: String::from("default-session"), mode: PlaybackMode::Creature(0), auto_cycle: None, wait_for_fall_timeout: 300 }
     }
 }
 
@@ -52,13 +54,14 @@ fn setup(
     conf: Res<PlaybackConfig>,
 ) {
     match conf.mode {
-        PlaybackMode::Creature(id) => {
+        PlaybackMode::Creature(id) | PlaybackMode::BestCreature(id) => {
             let morph = write::load_creature(&conf.session, id);
             let mut res = morph.evaluate();
             res.align_to_ground();
             res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(137, 220, 235, 220));
             commands.insert_resource(PlaybackCreatures(vec![morph], 0, Instant::now(), true));
-            commands.insert_resource(WaitingForFall(false));
+            commands.insert_resource(WaitingForFall(false, 0, 0));
+            commands.insert_resource(GenerationTestingConfig { wait_for_fall_timeout: conf.wait_for_fall_timeout, ..Default::default() });
         },
         PlaybackMode::Generation(id) => {
             let morphs = write::load_generation(&conf.session, id);
@@ -66,21 +69,22 @@ fn setup(
             res.align_to_ground();
             res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(137, 220, 235, 220));
             commands.insert_resource(PlaybackCreatures(morphs, 0, Instant::now(), true));
-            commands.insert_resource(WaitingForFall(false));
+            commands.insert_resource(WaitingForFall(false, 0, 0));
+            commands.insert_resource(GenerationTestingConfig { wait_for_fall_timeout: conf.wait_for_fall_timeout, ..Default::default() });
         },
     }
 }
 
 
 #[derive(Resource)]
-struct WaitingForFall(bool);
+struct WaitingForFall(bool, usize, usize);
 
 fn cycle_creature(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut creatures: ResMut<PlaybackCreatures>,
-    mut limbs: Query<(Entity, &Velocity, &mut Friction, &mut Restitution), With<CreatureLimb>>,
+    mut limbs: Query<(Entity, &Velocity, &Transform, &mut Friction, &mut Restitution), With<CreatureLimb>>,
     mut ground: Query<&mut Friction, (With<GroundMarker>, Without<CreatureLimb>)>,
     keys: Res<Input<KeyCode>>,
     conf: Res<PlaybackConfig>,
@@ -93,7 +97,7 @@ fn cycle_creature(
         creatures.3 = false;
         waiting_for_fall.0 = true;
         build_conf.behavior.disable_behavior = true;
-        for (entity, _, mut friction, mut restitution) in limbs.iter_mut() {
+        for (entity, _, _, mut friction, mut restitution) in limbs.iter_mut() {
             limb_info_save.insert(entity, (friction.coefficient, restitution.coefficient));
             friction.coefficient = 0.0;
             restitution.coefficient = 0.0;
@@ -109,25 +113,35 @@ fn cycle_creature(
     };
 
     if waiting_for_fall.0 && time.elapsed_seconds() > 0.5 {
-        let mut y_vel = 0.0;
-        limbs.iter().for_each(|x| y_vel += x.1.linvel.y);
-        if y_vel.abs() < 0.01 {
-            waiting_for_fall.0 = false;
-            build_conf.behavior.disable_behavior = false;
-            for (entity, _, mut friction, mut restitution) in limbs.iter_mut() {
-                let Some((f, r)) = limb_info_save.get(&entity) else { continue };
-                friction.coefficient = *f;
-                restitution.coefficient = *r;
+        waiting_for_fall.1 += 1;
+        if waiting_for_fall.2 < 30 {
+            waiting_for_fall.2 += 1;
+        } else {
+            let mut y_vel = 0.0;
+            limbs.iter().for_each(|x| {
+                y_vel += x.1.linvel.y;
+            });
+            if y_vel.abs() < 0.01 || waiting_for_fall.1 > conf.wait_for_fall_timeout {
+                waiting_for_fall.0 = false;
+                build_conf.behavior.disable_behavior = false;
+                waiting_for_fall.1 = 0;
+                waiting_for_fall.2 = 0;
+
+                for (entity, _, _, mut friction, mut restitution) in limbs.iter_mut() {
+                    let Some((f, r)) = limb_info_save.get(&entity) else { continue };
+                    friction.coefficient = *f;
+                    restitution.coefficient = *r;
+                }
+                for mut friction in ground.iter_mut() {
+                    friction.coefficient = 0.3;
+                }
+                limb_info_save.clear();
             }
-            for mut friction in ground.iter_mut() {
-                friction.coefficient = 0.3;
-            }
-            limb_info_save.clear();
         }
     }
 
     if keys.just_pressed(KeyCode::Space) || cycle_switch {
-        limbs.iter().for_each(|(entity, _, _, _)| commands.entity(entity).despawn());
+        limbs.iter().for_each(|(entity, _, _, _, _)| commands.entity(entity).despawn());
         creatures.1 = (creatures.1 + 1).rem_euclid(creatures.0.len());
         let morph = &creatures.0[creatures.1];
         let mut res = morph.evaluate();
@@ -135,7 +149,7 @@ fn cycle_creature(
         res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(137, 220, 235, 220));
         waiting_for_fall.0 = true;
         build_conf.behavior.disable_behavior = true;
-        for (entity, _, mut friction, mut restitution) in limbs.iter_mut() {
+        for (entity, _, _, mut friction, mut restitution) in limbs.iter_mut() {
             limb_info_save.insert(entity, (friction.coefficient, restitution.coefficient));
             friction.coefficient = 0.0;
             restitution.coefficient = 0.0;

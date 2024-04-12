@@ -12,6 +12,7 @@ pub struct FitnessEvalInput {
 
 
 pub trait EvolutionFitnessEval {
+    fn eval_start(&mut self, input: FitnessEvalInput);
     fn eval_continuous(&mut self, input: FitnessEvalInput);
-    fn final_eval(&self) -> f32;
+    fn final_eval(&self, input: FitnessEvalInput) -> f32;
 }

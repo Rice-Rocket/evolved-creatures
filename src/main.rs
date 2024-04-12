@@ -1,5 +1,6 @@
 use std::{env, time::Duration};
 
+use behavior_evolver::evolution::write;
 use playback::{PlaybackConfig, PlaybackMode};
 use train::TrainConfig;
 
@@ -28,6 +29,7 @@ fn expect_res<T, E>(v: Result<T, E>, s: &str) -> Result<T, InvalidUsageError> {
 }
 
 fn print_help(args: &[String]) {
+    println!();
     println!("USAGE:");
     println!("    {} train [session] [TRAIN OPTIONS]", args[0]);
     println!("            Begin a new or attach to an existing training session");
@@ -59,7 +61,7 @@ fn print_help(args: &[String]) {
     println!();
     println!("    -n, --num-mutations <NUM_MUTATIONS>");
     println!("            The number of mutations each creature will sustain");
-    println!("            Default: 5");
+    println!("            Default: 20");
     println!();
     println!("    -e, --elitism <ELITISM>");
     println!("            The portion of the previous generation's population that is preserved");
@@ -84,6 +86,9 @@ fn print_help(args: &[String]) {
     println!();
     println!("    -g, --generation <GENERATION_ID>");
     println!("            Playback a specific generation");
+    println!();
+    println!("    -b, --best");
+    println!("            Playback the best creature");
     println!();
     println!("    -a, --auto-cycle <CYCLE_DELAY>");
     println!("            Enable auto-cycling through creatures with specified delay");
@@ -127,6 +132,7 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
             }
         }
 
+        println!();
         println!("Training with the following config: ");
         println!("    session = {}", train_config.session);
         println!("    visual = {}", train_config.visual);
@@ -160,6 +166,9 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
                         expect(args.get(4), "Expected <GENERATION_ID>")?.parse::<usize>(),
                         "Invalid <GENERATION_ID>",
                     )?);
+                } else if arg == "-b" || arg == "--best" {
+                    supplied_mode = true;
+                    playback_config.mode = PlaybackMode::BestCreature(0);
                 } else if arg == "-a" || arg == "--auto-cycle" {
                     playback_config.auto_cycle = Some(Duration::from_secs_f32(expect_res(
                         expect(opts.next(), "Expected <CYCLE_DELAY>")?.parse::<f32>(),
@@ -173,11 +182,19 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
             return err("Invalid usage, expected [-c|-g]");
         }
 
+        if let PlaybackMode::BestCreature(_) = playback_config.mode {
+            playback_config.mode =
+                PlaybackMode::BestCreature(expect(write::grab_best_creature(&playback_config.session), "session.dat file does not exist")?);
+        }
+
+
         let (mode, id) = match playback_config.mode {
             PlaybackMode::Creature(id) => ("creature", id),
             PlaybackMode::Generation(id) => ("generation", id),
+            PlaybackMode::BestCreature(id) => ("best_creature", id),
         };
 
+        println!();
         println!("Executing playback with the following config");
         println!("    mode = {}", mode);
         println!("    id = {}", id);

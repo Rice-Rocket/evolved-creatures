@@ -43,9 +43,9 @@ impl GenerationPopulator {
             mutate_params,
             rand_params,
             current_id: 0,
-            best_fitness: 0.0,
+            best_fitness: -1000000000000.0,
             best_creature: 0,
-            num_mutations: 5,
+            num_mutations: 20,
         }
     }
 }

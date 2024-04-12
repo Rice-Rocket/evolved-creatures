@@ -35,7 +35,7 @@ impl Default for TrainConfig {
             elitism: 0.25,
             rand_percent: 0.03,
             pop_size: 250,
-            num_mutations: 5,
+            num_mutations: 20,
             fitness_fn: String::from("jump"),
         }
     }
@@ -110,7 +110,12 @@ fn print_info(
 }
 
 fn setup(mut commands: Commands, mut state: ResMut<NextState<EvolutionState>>, conf: Res<TrainConfig>) {
-    commands.insert_resource(GenerationTestingConfig { test_time: conf.test_time, session: conf.session.clone(), wait_for_fall: true });
+    commands.insert_resource(GenerationTestingConfig {
+        test_time: conf.test_time,
+        session: conf.session.clone(),
+        wait_for_fall: true,
+        ..Default::default()
+    });
     commands.insert_resource(GenerationPopulator::new(
         conf.elitism,
         conf.rand_percent,

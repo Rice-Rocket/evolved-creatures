@@ -6,6 +6,8 @@ pub struct JumpFitnessEval {
 
 
 impl EvolutionFitnessEval for JumpFitnessEval {
+    fn eval_start(&mut self, _input: FitnessEvalInput) {}
+
     fn eval_continuous(&mut self, input: FitnessEvalInput) {
         let mut mini = f32::MAX;
         input.limbs.iter().for_each(|(transform, _)| {
@@ -30,7 +32,7 @@ impl EvolutionFitnessEval for JumpFitnessEval {
         self.max_height = self.max_height.max(mini);
     }
 
-    fn final_eval(&self) -> f32 {
+    fn final_eval(&self, _input: FitnessEvalInput) -> f32 {
         self.max_height
     }
 }

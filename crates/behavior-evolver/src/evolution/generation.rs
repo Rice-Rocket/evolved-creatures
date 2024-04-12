@@ -21,11 +21,12 @@ pub struct GenerationTestingConfig {
     pub test_time: usize,
     pub session: String,
     pub wait_for_fall: bool,
+    pub wait_for_fall_timeout: usize,
 }
 
 impl Default for GenerationTestingConfig {
     fn default() -> Self {
-        Self { test_time: 180, session: String::from("default-session"), wait_for_fall: false }
+        Self { test_time: 180, session: String::from("default-session"), wait_for_fall: false, wait_for_fall_timeout: 300 }
     }
 }
 
@@ -41,6 +42,8 @@ pub struct EvolutionGeneration<F: EvolutionFitnessEval + Send + Sync + Default +
     pub(crate) current_creature: Option<CreatureId>,
     pub(crate) current_generation: usize,
     pub(crate) waiting_for_fall: bool,
+    pub(crate) fall_wait_time: usize,
+    pub(crate) fall_start_counter: usize,
 }
 
 
@@ -60,7 +63,17 @@ pub(crate) fn test_generation_nowindow<F: EvolutionFitnessEval + Send + Sync + D
         EvolutionState::EvaluatingCreature => {
             match generation.current_test {
                 Some(i) => {
-                    let eval = generation.current_fitness.as_ref().unwrap().final_eval();
+                    let limb_pos_vels: Vec<_> = limbs
+                        .iter()
+                        .filter(|(_, limb, _, _, _, _)| limb.creature == generation.population[generation.current_test.unwrap()].creature)
+                        .map(|(_, _, pos, vel, _, _)| (*pos, *vel))
+                        .collect();
+
+                    let eval = generation
+                        .current_fitness
+                        .as_ref()
+                        .unwrap()
+                        .final_eval(FitnessEvalInput { limbs: limb_pos_vels, test_time: config.test_time });
                     generation.fitnesses.push(eval);
                     generation.current_fitness = Some(F::default());
                     generation.current_test = Some(i + 1);
@@ -114,20 +127,36 @@ pub(crate) fn test_generation_nowindow<F: EvolutionFitnessEval + Send + Sync + D
                 .collect();
 
             if generation.waiting_for_fall {
-                let mut y_vel = 0.0;
-                limb_pos_vels.iter().for_each(|x| y_vel += x.1.linvel.y);
-                if y_vel.abs() < 0.01 {
-                    generation.waiting_for_fall = false;
-                    build_conf.behavior.disable_behavior = false;
-                    for (entity, _, _, _, mut friction, mut restitution) in limbs.iter_mut() {
-                        let Some((f, r)) = limb_info_save.get(&entity) else { continue };
-                        friction.coefficient = *f;
-                        restitution.coefficient = *r;
+                generation.fall_wait_time += 1;
+                if generation.fall_start_counter < 30 {
+                    generation.fall_start_counter += 1;
+                } else {
+                    let mut y_vel = 0.0;
+                    limb_pos_vels.iter().for_each(|x| {
+                        y_vel += x.1.linvel.y;
+                    });
+                    if y_vel.abs() < 0.01 || generation.fall_wait_time > config.wait_for_fall_timeout {
+                        generation.waiting_for_fall = false;
+                        build_conf.behavior.disable_behavior = false;
+                        generation.fall_wait_time = 0;
+                        generation.fall_start_counter = 0;
+
+                        for (entity, _, _, _, mut friction, mut restitution) in limbs.iter_mut() {
+                            let Some((f, r)) = limb_info_save.get(&entity) else { continue };
+                            friction.coefficient = *f;
+                            restitution.coefficient = *r;
+                        }
+                        for mut friction in ground.iter_mut() {
+                            friction.coefficient = 0.75;
+                        }
+                        limb_info_save.clear();
+
+                        generation
+                            .current_fitness
+                            .as_mut()
+                            .unwrap()
+                            .eval_start(FitnessEvalInput { limbs: limb_pos_vels, test_time: config.test_time });
                     }
-                    for mut friction in ground.iter_mut() {
-                        friction.coefficient = 0.3;
-                    }
-                    limb_info_save.clear();
                 }
                 return;
             }
@@ -170,7 +199,17 @@ pub(crate) fn test_generation<F: EvolutionFitnessEval + Send + Sync + Default + 
         EvolutionState::EvaluatingCreature => {
             match generation.current_test {
                 Some(i) => {
-                    let eval = generation.current_fitness.as_ref().unwrap().final_eval();
+                    let limb_pos_vels: Vec<_> = limbs
+                        .iter()
+                        .filter(|(_, limb, _, _, _, _)| limb.creature == generation.population[generation.current_test.unwrap()].creature)
+                        .map(|(_, _, pos, vel, _, _)| (*pos, *vel))
+                        .collect();
+
+                    let eval = generation
+                        .current_fitness
+                        .as_ref()
+                        .unwrap()
+                        .final_eval(FitnessEvalInput { limbs: limb_pos_vels, test_time: config.test_time });
                     generation.fitnesses.push(eval);
                     generation.current_fitness = Some(F::default());
                     generation.current_test = Some(i + 1);
@@ -230,20 +269,36 @@ pub(crate) fn test_generation<F: EvolutionFitnessEval + Send + Sync + Default + 
                 .collect();
 
             if generation.waiting_for_fall {
-                let mut y_vel = 0.0;
-                limb_pos_vels.iter().for_each(|x| y_vel += x.1.linvel.y);
-                if y_vel.abs() < 0.01 {
-                    generation.waiting_for_fall = false;
-                    build_conf.behavior.disable_behavior = false;
-                    for (entity, _, _, _, mut friction, mut restitution) in limbs.iter_mut() {
-                        let Some((f, r)) = limb_info_save.get(&entity) else { continue };
-                        friction.coefficient = *f;
-                        restitution.coefficient = *r;
+                generation.fall_wait_time += 1;
+                if generation.fall_start_counter < 30 {
+                    generation.fall_start_counter += 1;
+                } else {
+                    let mut y_vel = 0.0;
+                    limb_pos_vels.iter().for_each(|x| {
+                        y_vel += x.1.linvel.y;
+                    });
+                    if y_vel.abs() < 0.01 || generation.fall_wait_time > config.wait_for_fall_timeout {
+                        generation.waiting_for_fall = false;
+                        build_conf.behavior.disable_behavior = false;
+                        generation.fall_wait_time = 0;
+                        generation.fall_start_counter = 0;
+
+                        for (entity, _, _, _, mut friction, mut restitution) in limbs.iter_mut() {
+                            let Some((f, r)) = limb_info_save.get(&entity) else { continue };
+                            friction.coefficient = *f;
+                            restitution.coefficient = *r;
+                        }
+                        for mut friction in ground.iter_mut() {
+                            friction.coefficient = 0.75;
+                        }
+                        limb_info_save.clear();
+
+                        generation
+                            .current_fitness
+                            .as_mut()
+                            .unwrap()
+                            .eval_start(FitnessEvalInput { limbs: limb_pos_vels, test_time: config.test_time });
                     }
-                    for mut friction in ground.iter_mut() {
-                        friction.coefficient = 0.3;
-                    }
-                    limb_info_save.clear();
                 }
                 return;
             }
