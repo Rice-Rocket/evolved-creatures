@@ -60,8 +60,8 @@ fn print_help(args: &[String]) {
     println!("            Default: 250");
     println!();
     println!("    -n, --num-mutations <NUM_MUTATIONS>");
-    println!("            The number of mutations each creature will sustain");
-    println!("            Default: 20");
+    println!("            The maximum number of mutations each creature will sustain");
+    println!("            Default: 50");
     println!();
     println!("    -e, --elitism <ELITISM>");
     println!("            The portion of the previous generation's population that is preserved");

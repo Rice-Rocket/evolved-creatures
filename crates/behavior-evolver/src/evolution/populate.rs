@@ -62,7 +62,7 @@ impl Default for GenerationPopulator {
             current_id: 0,
             best_fitness: 0.0,
             best_creature: 0,
-            num_mutations: 20,
+            num_mutations: 50,
         }
     }
 }
@@ -139,7 +139,7 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
         populator.current_id += 1;
         let mut mutate = MutateMorphology::new(&mut morph, &mut rng, &mut params);
 
-        let n_mutations = (populator.num_mutations as f32 * (i as f32 / (mutate_amt - 1) as f32).sqrt()).ceil() as usize;
+        let n_mutations = (populator.num_mutations as f32 * (i as f32 / (mutate_amt - 1) as f32).powf(2.4)).ceil() as usize;
         for _ in 0..n_mutations {
             mutate.mutate();
         }

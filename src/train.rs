@@ -35,7 +35,7 @@ impl Default for TrainConfig {
             elitism: 0.25,
             rand_percent: 0.03,
             pop_size: 250,
-            num_mutations: 20,
+            num_mutations: 50,
             fitness_fn: String::from("jump"),
         }
     }

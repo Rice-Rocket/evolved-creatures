@@ -58,7 +58,7 @@ fn setup(
             let morph = write::load_creature(&conf.session, id);
             let mut res = morph.evaluate();
             res.align_to_ground();
-            res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(137, 220, 235, 220));
+            res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(243, 139, 168, 220));
             commands.insert_resource(PlaybackCreatures(vec![morph], 0, Instant::now(), true));
             commands.insert_resource(WaitingForFall(false, 0, 0));
             commands.insert_resource(GenerationTestingConfig { wait_for_fall_timeout: conf.wait_for_fall_timeout, ..Default::default() });
@@ -67,7 +67,7 @@ fn setup(
             let morphs = write::load_generation(&conf.session, id);
             let mut res = morphs[0].evaluate();
             res.align_to_ground();
-            res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(137, 220, 235, 220));
+            res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(243, 139, 168, 220));
             commands.insert_resource(PlaybackCreatures(morphs, 0, Instant::now(), true));
             commands.insert_resource(WaitingForFall(false, 0, 0));
             commands.insert_resource(GenerationTestingConfig { wait_for_fall_timeout: conf.wait_for_fall_timeout, ..Default::default() });
@@ -84,7 +84,10 @@ fn cycle_creature(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut creatures: ResMut<PlaybackCreatures>,
-    mut limbs: Query<(Entity, &Velocity, &Transform, &mut Friction, &mut Restitution), With<CreatureLimb>>,
+    mut limbs: Query<
+        (Entity, &Velocity, &Transform, &mut Friction, &mut Restitution, &Handle<StandardMaterial>, &Handle<Mesh>),
+        With<CreatureLimb>,
+    >,
     mut ground: Query<&mut Friction, (With<GroundMarker>, Without<CreatureLimb>)>,
     keys: Res<Input<KeyCode>>,
     conf: Res<PlaybackConfig>,
@@ -92,12 +95,25 @@ fn cycle_creature(
     mut limb_info_save: Local<HashMap<Entity, (f32, f32)>>,
     mut build_conf: ResMut<CreatureBuilderConfig>,
     time: Res<Time>,
+    mut just_spawned_creature: Local<bool>,
 ) {
+    if *just_spawned_creature {
+        for (entity, _, _, mut friction, mut restitution, _, _) in limbs.iter_mut() {
+            limb_info_save.insert(entity, (friction.coefficient, restitution.coefficient));
+            friction.coefficient = 0.0;
+            restitution.coefficient = 0.0;
+        }
+        for mut friction in ground.iter_mut() {
+            friction.coefficient = 0.0;
+        }
+        *just_spawned_creature = false;
+    }
+
     if creatures.3 {
         creatures.3 = false;
         waiting_for_fall.0 = true;
         build_conf.behavior.disable_behavior = true;
-        for (entity, _, _, mut friction, mut restitution) in limbs.iter_mut() {
+        for (entity, _, _, mut friction, mut restitution, _, _) in limbs.iter_mut() {
             limb_info_save.insert(entity, (friction.coefficient, restitution.coefficient));
             friction.coefficient = 0.0;
             restitution.coefficient = 0.0;
@@ -127,10 +143,12 @@ fn cycle_creature(
                 waiting_for_fall.1 = 0;
                 waiting_for_fall.2 = 0;
 
-                for (entity, _, _, mut friction, mut restitution) in limbs.iter_mut() {
+                for (entity, _, _, mut friction, mut restitution, mat_handle, _) in limbs.iter_mut() {
                     let Some((f, r)) = limb_info_save.get(&entity) else { continue };
                     friction.coefficient = *f;
                     restitution.coefficient = *r;
+                    let mat = materials.get_mut(mat_handle.id()).unwrap();
+                    mat.base_color = Color::rgba_u8(137, 220, 235, 220);
                 }
                 for mut friction in ground.iter_mut() {
                     friction.coefficient = 0.3;
@@ -141,21 +159,18 @@ fn cycle_creature(
     }
 
     if keys.just_pressed(KeyCode::Space) || cycle_switch {
-        limbs.iter().for_each(|(entity, _, _, _, _)| commands.entity(entity).despawn());
+        limbs.iter().for_each(|(entity, _, _, _, _, material, mesh)| {
+            commands.entity(entity).despawn();
+            materials.remove(material.id());
+            meshes.remove(mesh.id());
+        });
         creatures.1 = (creatures.1 + 1).rem_euclid(creatures.0.len());
         let morph = &creatures.0[creatures.1];
         let mut res = morph.evaluate();
         res.align_to_ground();
-        res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(137, 220, 235, 220));
+        res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(243, 139, 168, 220));
         waiting_for_fall.0 = true;
         build_conf.behavior.disable_behavior = true;
-        for (entity, _, _, mut friction, mut restitution) in limbs.iter_mut() {
-            limb_info_save.insert(entity, (friction.coefficient, restitution.coefficient));
-            friction.coefficient = 0.0;
-            restitution.coefficient = 0.0;
-        }
-        for mut friction in ground.iter_mut() {
-            friction.coefficient = 0.0;
-        }
+        *just_spawned_creature = true;
     }
 }
