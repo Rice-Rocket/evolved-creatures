@@ -62,7 +62,7 @@ impl Default for GenerationPopulator {
             current_id: 0,
             best_fitness: 0.0,
             best_creature: 0,
-            num_mutations: 50,
+            num_mutations: 80,
         }
     }
 }
