@@ -105,7 +105,7 @@ impl EvolutionFitnessEval for WalkFitnessEval {
         let end_pos = total_pos / if count != 0.0 { count } else { 1.0 };
 
         let res = (end_pos - self.init_pos).length()
-            - if self.max_height > 3.0 { self.max_height * self.max_height * 2.0 } else { 0.0 }
+            - if self.max_height > 2.0 { self.max_height * self.max_height * 5.0 } else { 0.0 }
             - if length_diff > 1.0 { length_diff * length_diff } else { 0.0 };
         if res.is_finite() {
             res
