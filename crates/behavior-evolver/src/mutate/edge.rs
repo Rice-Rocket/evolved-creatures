@@ -151,11 +151,12 @@ impl<'a> MutateEdge<'a> {
         }
 
         for i in 0..6 {
-            for j in 0..2 {
-                if self.params.limit_axes.change_scaled(self.rng, 12.0) {
-                    self.edge.limit_axes[i][j] = self.params.limit_axes.mutate(self.rng, self.edge.limit_axes[i][j]);
-                };
-            }
+            if self.params.limit_axes.change_scaled(self.rng, 12.0) {
+                self.edge.limit_axes[i][0] = -self.params.limit_axes.mutate(self.rng, -self.edge.limit_axes[i][0]);
+            };
+            if self.params.limit_axes.change_scaled(self.rng, 12.0) {
+                self.edge.limit_axes[i][1] = self.params.limit_axes.mutate(self.rng, self.edge.limit_axes[i][1]);
+            };
         }
     }
 }

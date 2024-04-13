@@ -192,7 +192,7 @@ impl Default for MutateMorphologyParams {
                 placement_pos: MutateFieldParams::new(0.1, 0.0, 0.05).unwrap().in_range(-1.0..1.0),
                 placement_rot: MutateFieldParams::new(0.1, 0.0, 0.1).unwrap(),
                 placement_scale: MutateFieldParams::new(0.1, 0.0, 0.075).unwrap().in_range(0.05..20.0),
-                limit_axes: MutateFieldParams::new(0.2, 0.0, 0.03).unwrap().in_range(PI..PI),
+                limit_axes: MutateFieldParams::new(0.2, 0.0, 0.03).unwrap().in_range(0.0..PI),
             },
             expr: MutateExprParams::default(),
             rand_node: RandomNodeParams::default(),

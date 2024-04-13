@@ -162,10 +162,7 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
                     )?);
                 } else if arg == "-g" || arg == "--generation" {
                     supplied_mode = true;
-                    playback_config.mode = PlaybackMode::Generation(expect_res(
-                        expect(args.get(4), "Expected <GENERATION_ID>")?.parse::<usize>(),
-                        "Invalid <GENERATION_ID>",
-                    )?);
+                    playback_config.mode = PlaybackMode::Generation;
                 } else if arg == "-b" || arg == "--best" {
                     supplied_mode = true;
                     playback_config.mode = PlaybackMode::BestCreature(0);
@@ -189,9 +186,9 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
 
 
         let (mode, id) = match playback_config.mode {
-            PlaybackMode::Creature(id) => ("creature", id),
-            PlaybackMode::Generation(id) => ("generation", id),
-            PlaybackMode::BestCreature(id) => ("best_creature", id),
+            PlaybackMode::Creature(id) => ("creature", format!("{}", id)),
+            PlaybackMode::Generation => ("generation", "N/A".to_string()),
+            PlaybackMode::BestCreature(id) => ("best_creature", format!("{}", id)),
         };
 
         println!();

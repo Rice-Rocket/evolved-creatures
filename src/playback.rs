@@ -13,7 +13,7 @@ use creature_builder::{builder::node::CreatureMorphologyGraph, config::CreatureB
 
 pub enum PlaybackMode {
     Creature(usize),
-    Generation(usize),
+    Generation,
     BestCreature(usize),
 }
 
@@ -63,8 +63,8 @@ fn setup(
             commands.insert_resource(WaitingForFall(false, 0, 0));
             commands.insert_resource(GenerationTestingConfig { wait_for_fall_timeout: conf.wait_for_fall_timeout, ..Default::default() });
         },
-        PlaybackMode::Generation(id) => {
-            let morphs = write::load_generation(&conf.session, id);
+        PlaybackMode::Generation => {
+            let morphs = write::load_generation(&conf.session);
             let mut res = morphs[0].evaluate();
             res.align_to_ground();
             res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(243, 139, 168, 220));

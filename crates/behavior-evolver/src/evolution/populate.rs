@@ -115,11 +115,8 @@ pub(crate) fn populate_generation<F: EvolutionFitnessEval + Send + Sync + Defaul
     let retained = (populator.elitism * populator.pop_size as f32).ceil() as usize;
     let rand_amt = (populator.rand_percent * populator.pop_size as f32).ceil() as usize;
 
-    let gen_best_fitness = generation.fitnesses[elite[0].0];
-    if populator.best_fitness < gen_best_fitness {
-        populator.best_fitness = gen_best_fitness;
-        populator.best_creature = elite[0].1.creature.0;
-    }
+    populator.best_fitness = generation.fitnesses[elite[0].0];
+    populator.best_creature = elite[0].1.creature.0;
 
     elite.truncate(retained);
     generation.population = elite.iter().map(|(_, x)| (*x).clone()).collect();

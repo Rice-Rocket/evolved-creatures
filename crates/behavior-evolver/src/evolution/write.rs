@@ -14,7 +14,6 @@ use crate::evolution::populate::CreaturePopulateFlag;
 
 struct TrainingPaths {
     session: PathBuf,
-    generations: PathBuf,
     creatures: PathBuf,
 }
 
@@ -22,14 +21,13 @@ struct TrainingPaths {
 fn train_path(session: &str) -> TrainingPaths {
     let get_dir = |target: &PathBuf| -> TrainingPaths {
         let sess = target.join(session);
-        TrainingPaths { generations: sess.join("generations/"), creatures: sess.join("creatures/"), session: sess }
+        TrainingPaths { creatures: sess.join("creatures/"), session: sess }
     };
     let create_dir = |target: &PathBuf| {
         let paths = get_dir(target);
         fs::create_dir_all(target).expect("Unable to create training data directory");
         if !paths.session.exists() {
             fs::create_dir(paths.session).expect("Unable to create session directory");
-            fs::create_dir(paths.generations).expect("Unable to create generation directory");
             fs::create_dir(paths.creatures).expect("Unable to create creature directory");
         };
     };
@@ -59,10 +57,9 @@ pub fn load_creature(session: &str, id: usize) -> CreatureMorphologyGraph {
     creature_de
 }
 
-pub fn load_generation(session: &str, id: usize) -> Vec<CreatureMorphologyGraph> {
+pub fn load_generation(session: &str) -> Vec<CreatureMorphologyGraph> {
     let train_dir = train_path(session);
-    let gen_data =
-        fs::read_to_string(train_dir.generations.join(format!("gen-{}.dat", id))).expect("Unable to read existing generation file");
+    let gen_data = fs::read_to_string(train_dir.session.join("last-gen.dat")).expect("Unable to read existing generation file");
     let mut population = Vec::new();
 
     for line in gen_data[..gen_data.len() - 1].split('\n').skip(2) {
@@ -96,6 +93,13 @@ pub fn grab_best_creature(session: &str) -> Option<usize> {
     None
 }
 
+fn remove_dir_contents<P: AsRef<std::path::Path>>(path: P) -> std::io::Result<()> {
+    for entry in fs::read_dir(path)? {
+        fs::remove_file(entry?.path())?;
+    }
+    Ok(())
+}
+
 
 pub fn write_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'static>(
     generation: Res<EvolutionGeneration<F>>,
@@ -106,6 +110,7 @@ pub fn write_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'stati
     let train_dir = train_path(&gen_test_conf.session);
     let cur_gen = generation.current_generation;
 
+    remove_dir_contents(&train_dir.creatures).expect("Unable to remove old creatures");
     for creature in generation.population.iter() {
         let creature_file = train_dir.creatures.join(format!("id-{}.ron", creature.creature.0));
         let serialized = ron::ser::to_string_pretty(&creature, ron::ser::PrettyConfig::default()).unwrap();
@@ -114,7 +119,7 @@ pub fn write_generation<F: EvolutionFitnessEval + Send + Sync + Default + 'stati
         }
     }
 
-    let gen_file = train_dir.generations.join(format!("gen-{}.dat", cur_gen));
+    let gen_file = train_dir.session.join("last-gen.dat");
     let mut gen = String::new();
 
     gen.push_str(&format!("--- Generation {} ---\n\n", cur_gen));
@@ -186,8 +191,7 @@ pub fn load_session<F: EvolutionFitnessEval + Send + Sync + Default + 'static>(
         populator.best_fitness = best_fitness;
         populator.best_creature = best_creature;
 
-        let gen_data = fs::read_to_string(train_dir.generations.join(format!("gen-{}.dat", generation.current_generation)))
-            .expect("Unable to read existing generation file");
+        let gen_data = fs::read_to_string(train_dir.session.join("last-gen.dat")).expect("Unable to read existing generation file");
 
         for line in gen_data[..gen_data.len() - 1].split('\n').skip(2) {
             let mut elements = line.split("  ");
