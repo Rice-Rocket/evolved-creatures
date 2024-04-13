@@ -36,8 +36,6 @@ impl RandomEdgeParams {
 
         let mut limit_axes = [[0f32; 2]; 6];
         for axis in limit_axes.iter_mut() {
-            // *axis = [-rng.gen_range(self.limit_axes.clone()),
-            // rng.gen_range(self.limit_axes.clone())];
             *axis = [-std::f32::consts::PI, std::f32::consts::PI];
         }
 
@@ -63,12 +61,13 @@ impl RandomEdgeParams {
 
 impl Default for RandomEdgeParams {
     fn default() -> Self {
+        use std::f32::consts::PI;
         Self {
             placement_pos: -1f32..1f32,
             placement_scale: 0.1..1.0,
             placement_scale_range: 0.25..2.0,
             lock_front_rot: true,
-            limit_axes: 0f32..std::f32::consts::PI,
+            limit_axes: PI..PI,
             rand_expr: RandomExprParams::default(),
         }
     }
