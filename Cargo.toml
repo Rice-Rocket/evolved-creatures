@@ -25,6 +25,7 @@ bevy_panorbit_camera.workspace = true
 
 indicatif = "0.17.8"
 termion = "3.0.0"
+homedir = "0.2.1"
 
 [workspace.dependencies]
 creature-builder = { path = "crates/creature-builder" }

@@ -1,10 +1,12 @@
+use std::fs;
+
 use behavior_evolver::{
     evolution::{
         fitness::{jump::JumpFitnessEval, walk::WalkFitnessEval},
         generation::GenerationTestingConfig,
         populate::GenerationPopulator,
         state::{EvolutionState, EvolutionTrainingEvent},
-        CreatureEvolutionPlugin,
+        write, CreatureEvolutionPlugin,
     },
     mutate::{MutateMorphologyParams, RandomMorphologyParams},
 };
@@ -17,6 +19,7 @@ pub struct TrainConfig {
     pub session: String,
     pub visual: bool,
     pub silent: bool,
+    pub overwrite: bool,
     pub test_time: usize,
     pub elitism: f32,
     pub rand_percent: f32,
@@ -31,6 +34,7 @@ impl Default for TrainConfig {
             session: String::from("default-session"),
             visual: false,
             silent: false,
+            overwrite: false,
             test_time: 180,
             elitism: 0.25,
             rand_percent: 0.03,
@@ -44,6 +48,13 @@ impl Default for TrainConfig {
 pub fn train(conf: TrainConfig) {
     let mut app = App::new();
     app.add_systems(Startup, setup);
+
+    if conf.overwrite {
+        let path = write::train_path(&conf.session).session;
+        if path.exists() {
+            fs::remove_dir_all(path).expect("Unable to overwrite existing session");
+        }
+    }
 
     if conf.visual {
         app.add_plugins(DefaultPlugins.set(WindowPlugin {

@@ -15,6 +15,7 @@ pub enum PlaybackMode {
     Creature(usize),
     Generation,
     BestCreature(usize),
+    List(String),
 }
 
 #[derive(Resource)]
@@ -53,9 +54,9 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     conf: Res<PlaybackConfig>,
 ) {
-    match conf.mode {
+    match &conf.mode {
         PlaybackMode::Creature(id) | PlaybackMode::BestCreature(id) => {
-            let morph = write::load_creature(&conf.session, id);
+            let morph = write::load_creature(&conf.session, *id);
             let mut res = morph.evaluate();
             res.align_to_ground();
             res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(243, 139, 168, 220));
@@ -65,6 +66,15 @@ fn setup(
         },
         PlaybackMode::Generation => {
             let morphs = write::load_generation(&conf.session);
+            let mut res = morphs[0].evaluate();
+            res.align_to_ground();
+            res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(243, 139, 168, 220));
+            commands.insert_resource(PlaybackCreatures(morphs, 0, Instant::now(), true));
+            commands.insert_resource(WaitingForFall(false, 0, 0));
+            commands.insert_resource(GenerationTestingConfig { wait_for_fall_timeout: conf.wait_for_fall_timeout, ..Default::default() });
+        },
+        PlaybackMode::List(playlist) => {
+            let morphs = write::load_list(playlist);
             let mut res = morphs[0].evaluate();
             res.align_to_ground();
             res.build(&mut commands, &mut meshes, &mut materials, Color::rgba_u8(243, 139, 168, 220));
@@ -124,7 +134,13 @@ fn cycle_creature(
     }
 
     let cycle_switch = match conf.auto_cycle {
-        Some(cycle_delay) => Instant::now().duration_since(creatures.2) > cycle_delay,
+        Some(cycle_delay) => {
+            let cycle = Instant::now().duration_since(creatures.2) > cycle_delay;
+            if cycle {
+                creatures.2 = Instant::now()
+            };
+            cycle
+        },
         None => false,
     };
 
@@ -165,6 +181,7 @@ fn cycle_creature(
             meshes.remove(mesh.id());
         });
         creatures.1 = (creatures.1 + 1).rem_euclid(creatures.0.len());
+        creatures.2 = Instant::now();
         let morph = &creatures.0[creatures.1];
         let mut res = morph.evaluate();
         res.align_to_ground();

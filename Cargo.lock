@@ -1750,6 +1750,7 @@ dependencies = [
  "bevy_rapier3d",
  "bevy_screen_diagnostics",
  "creature-builder",
+ "homedir",
  "indicatif",
  "termion",
 ]

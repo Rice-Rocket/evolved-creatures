@@ -1,4 +1,4 @@
-use std::{env, time::Duration};
+use std::{env, fs, process::Command, time::Duration};
 
 use behavior_evolver::evolution::write;
 use playback::{PlaybackConfig, PlaybackMode};
@@ -37,17 +37,24 @@ fn print_help(args: &[String]) {
     println!("    {} play [session] [-c|-g] [PLAYBACK OPTIONS]", args[0]);
     println!("            Playback a creature or entire generation");
     println!();
+    println!("    {} plist [playlist|-l] [PLAYLIST OPTIONS]", args[0]);
+    println!("            Perform operations on a list of selected creatures");
+    println!();
+    println!("    {} session [name|-l] [SESSION OPTIONS]", args[0]);
+    println!("            Perform operations on training sessions");
+    println!();
     println!("    {} help", args[0]);
     println!("            Display this message");
     println!();
     println!("TRAIN OPTIONS:");
     println!("    -v, --visual");
     println!("            Open a window showing the training in progress");
-    println!("            Default: false");
     println!();
     println!("    -s, --silent");
     println!("            Don't print any progress updates");
-    println!("            Default: false");
+    println!();
+    println!("    -o, --overwrite");
+    println!("            Overwrite the session if it already exists instead of attaching to it");
     println!();
     println!("    -t, --test-time <TEST_TIME>");
     println!("            Number of simulation steps that each creatures should be tested for");
@@ -93,6 +100,23 @@ fn print_help(args: &[String]) {
     println!("    -a, --auto-cycle <CYCLE_DELAY>");
     println!("            Enable auto-cycling through creatures with specified delay");
     println!("            Default: unset; no auto-cycle");
+    println!();
+    println!("PLAYLIST OPTIONS:");
+    println!("    -n, --new [<SESSION> <CREATURE_ID>]+");
+    println!("            Create a new playlist with the given creatures");
+    println!();
+    println!("    -p, --play");
+    println!("            Playback an existing playlist");
+    println!();
+    println!("    -l, --list");
+    println!("            List all playlists");
+    println!();
+    println!("SESSION OPTIONS:");
+    println!("    -d, --delete");
+    println!("            Delete the session");
+    println!();
+    println!("    -l, --list");
+    println!("            List all sessions");
 }
 
 fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
@@ -107,6 +131,8 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
                     train_config.visual = true;
                 } else if arg == "-s" || arg == "--silent" {
                     train_config.silent = true;
+                } else if arg == "-o" || arg == "--overwrite" {
+                    train_config.overwrite = true;
                 } else if arg == "-t" || arg == "--test-time" {
                     train_config.test_time =
                         expect_res(expect(opts.next(), "Expected <TEST_TIME>")?.parse::<usize>(), "Invalid <TEST_TIME>")?;
@@ -176,7 +202,7 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
         }
 
         if !supplied_mode {
-            return err("Invalid usage, expected [-c|-g]");
+            return err("Invalid usage, expected [-c|-g|-b]");
         }
 
         if let PlaybackMode::BestCreature(_) = playback_config.mode {
@@ -189,6 +215,7 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
             PlaybackMode::Creature(id) => ("creature", format!("{}", id)),
             PlaybackMode::Generation => ("generation", "N/A".to_string()),
             PlaybackMode::BestCreature(id) => ("best_creature", format!("{}", id)),
+            PlaybackMode::List(_) => unreachable!(),
         };
 
         println!();
@@ -202,6 +229,105 @@ fn parse_args(args: Vec<String>) -> Result<(), InvalidUsageError> {
         println!();
 
         playback::play(playback_config);
+    } else if args[1] == "plist" {
+        let list = expect(args.get(2), "Expected [playlist|-l]")?.clone();
+        if list == "-l" || list == "--list" {
+            let list_dir = write::data_path().join("playlists");
+            let output = if cfg!(target_os = "windows") {
+                let cmd = format!("dir {}", list_dir.to_str().expect("Unable to convert playlist path to string"));
+                Command::new("cmd").args(["/C", &cmd]).output().expect("Failed to list playlists")
+            } else {
+                let cmd = format!("ls {}", list_dir.to_str().expect("Unable to convert playlist path to string"));
+                Command::new("sh").args(["-c", &cmd]).output().expect("Failed to list playlists")
+            };
+            println!("{}", String::from_utf8(output.stdout).expect("Invalid ls output").replace('\n', "  "));
+            return Ok(());
+        }
+        let mut is_playing = false;
+        let mut playback_config = PlaybackConfig { session: String::new(), mode: PlaybackMode::List(list.clone()), ..Default::default() };
+
+        if args.len() > 2 {
+            let mut opts = args[3..].iter();
+
+            while let Some(arg) = opts.next() {
+                if arg == "-p" || arg == "--play" {
+                    is_playing = true;
+                } else if arg == "-n" || arg == "--new" {
+                    let mut sessions = String::new();
+                    #[allow(clippy::while_let_on_iterator)]
+                    while let Some(sess) = opts.next() {
+                        sessions.push_str(sess);
+                        sessions.push('\n');
+                        let id_arg = expect(opts.next(), "Expected <CREATURE_ID>")?;
+                        let id = if id_arg == "-b" || id_arg == "--best" {
+                            expect(write::grab_best_creature(sess), "No best creature found")?
+                        } else {
+                            expect_res(id_arg.parse::<usize>(), "Invalid <CREATURE_ID>")?
+                        };
+                        sessions.push_str(&id.to_string());
+                        sessions.push('\n');
+                    }
+
+                    if sessions.is_empty() {
+                        return err("Expected at least one <SESSION> and <CREATURE_ID>");
+                    }
+
+                    let home = homedir::get_my_home().unwrap().unwrap();
+                    let lists = home.join(".local/share/evolved-creatures/playlists/");
+                    expect_res(fs::write(lists.join(format!("{}.plst", list)), sessions), "Unable to write playlist file")?;
+                } else if arg == "-a" || arg == "--auto-cycle" {
+                    playback_config.auto_cycle = Some(Duration::from_secs_f32(expect_res(
+                        expect(opts.next(), "Expected <CYCLE_DELAY>")?.parse::<f32>(),
+                        "Invalid <CYCLE_DELAY>",
+                    )?));
+                }
+            }
+        }
+
+        if let PlaybackMode::BestCreature(_) = playback_config.mode {
+            playback_config.mode =
+                PlaybackMode::BestCreature(expect(write::grab_best_creature(&playback_config.session), "session.dat file does not exist")?);
+        }
+
+
+        if is_playing {
+            println!();
+            println!("Executing playback with the following config");
+            println!("    mode = list");
+            println!("    list = {}", list);
+            match playback_config.auto_cycle {
+                Some(duration) => println!("    auto-cycle = {}", duration.as_secs_f32()),
+                None => println!("    auto-cycle = false"),
+            }
+            println!();
+
+            playback::play(playback_config);
+        }
+    } else if args[1] == "session" {
+        let name = expect(args.get(2), "Expected [session|-l]")?.clone();
+        if name == "-l" || name == "--list" {
+            let list_dir = write::data_path().join("training");
+            let output = if cfg!(target_os = "windows") {
+                let cmd = format!("dir {}", list_dir.to_str().expect("Unable to convert session path to string"));
+                Command::new("cmd").args(["/C", &cmd]).output().expect("Failed to list sessions")
+            } else {
+                let cmd = format!("ls {}", list_dir.to_str().expect("Unable to convert session path to string"));
+                Command::new("sh").args(["-c", &cmd]).output().expect("Failed to list sessions")
+            };
+            println!("{}", String::from_utf8(output.stdout).expect("Invalid ls output").replace('\n', "  "));
+            return Ok(());
+        }
+        if args.len() > 2 {
+            let opts = args[3..].iter();
+            for arg in opts {
+                if arg == "-d" || arg == "--delete" {
+                    let dir = write::train_path(&name).session;
+                    fs::remove_dir_all(dir).expect("Unable to delete session");
+                    println!("INFO: removed session {}", name);
+                    return Ok(());
+                }
+            }
+        }
     } else {
         return err("Invalid first argument");
     }

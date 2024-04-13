@@ -12,13 +12,33 @@ use super::{
 use crate::evolution::populate::CreaturePopulateFlag;
 
 
-struct TrainingPaths {
-    session: PathBuf,
-    creatures: PathBuf,
+pub struct TrainingPaths {
+    pub session: PathBuf,
+    pub creatures: PathBuf,
 }
 
 
-fn train_path(session: &str) -> TrainingPaths {
+pub fn data_path() -> PathBuf {
+    let home = homedir::get_my_home().unwrap().unwrap();
+    if cfg!(unix) {
+        let target = home.join(".local/share/evolved-creatures/");
+        if !target.exists() {
+            println!("INFO: Unix-like system detected, putting training data in ~/.local/share/evolved-creatures/");
+            fs::create_dir_all(&target).expect("Unable to create directory");
+        }
+        target
+    } else {
+        let target = home.join(".evolved-creatures/training/");
+        if !target.exists() {
+            println!("INFO: Windows-like system detected, putting training data in ~/.evolved-creatures/");
+            fs::create_dir_all(&target).expect("Unable to create directory");
+        }
+        target
+    }
+}
+
+
+pub fn train_path(session: &str) -> TrainingPaths {
     let get_dir = |target: &PathBuf| -> TrainingPaths {
         let sess = target.join(session);
         TrainingPaths { creatures: sess.join("creatures/"), session: sess }
@@ -48,6 +68,21 @@ fn train_path(session: &str) -> TrainingPaths {
         create_dir(&target);
         get_dir(&target)
     }
+}
+
+pub fn load_list(list_name: &str) -> Vec<CreatureMorphologyGraph> {
+    let home = homedir::get_my_home().unwrap().unwrap();
+    let lists = home.join(".local/share/evolved-creatures/playlists/");
+    let lst = fs::read_to_string(lists.join(format!("{}.plst", list_name)))
+        .unwrap_or_else(|_| panic!("'{}.plst' does not exist or is invalid", list_name));
+
+    let mut creatures = Vec::new();
+    for sess in lst.split('\n') {
+        let id = sess.split(' ').nth(1).expect("Invalid playlist file").parse::<usize>().expect("Invalid playlist file");
+        let morph = load_creature(sess, id);
+        creatures.push(morph);
+    }
+    creatures
 }
 
 pub fn load_creature(session: &str, id: usize) -> CreatureMorphologyGraph {
